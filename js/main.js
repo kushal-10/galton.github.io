@@ -37,9 +37,9 @@ const beadYOffset      = 175;
 
 // —— render styles ——
 const style = {
-  boundary:    { fillStyle: '#F0F0F0', strokeStyle: 'transparent' },
+  boundary:    { fillStyle: '#505050', strokeStyle: 'transparent' },
   transparent: { fillStyle: '#222',    strokeStyle: 'transparent' },
-  ball:        { fillStyle: '#85c226', strokeStyle: '#222' }
+  ball:        { fillStyle: '#8866ff', strokeStyle: '#222' }
 };
 
 /** Compute canvas height based on peg rows */

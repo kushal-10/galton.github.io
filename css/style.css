@@ -1,12 +1,12 @@
 body {
   margin: 0;
-  background: #fafafa;
+  background: rgba(255,255,255,0.9);
 }
 #player {
   position: relative;
   width: 1200px;
   margin: auto;
-  zoom: 0.8;
+  zoom: 0.65;
 }
 #controls,
 #controls-2,
@@ -18,15 +18,15 @@ body {
   border-radius: 4px;
   font-family: sans-serif;
 }
-#controls   { top: 10px; }
-#controls-2 { top: 50px; }
-#controls-3 { top: 90px; }
+#controls   { top: 10px; font-size: 25px}
+#controls-2 { top: 80px; font-size: 25px}
+#controls-3 { top: 150px; font-size: 25px}
 #reset-btn {
   position: absolute;
-  top: 130px;
-  left: 10px;
+  top: 230px;
+  left: 710px;
   padding: 6px 12px;
-  font-size: 14px;
+  font-size: 25px;
   cursor: pointer;
 }
 

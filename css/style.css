@@ -1,55 +1,79 @@
+/* css/style.css */
+html {
+  height: 100vh;
+}
+
 body {
   margin: 0;
-  background: rgba(255,255,255,0.9);
-}
-#player {
-  position: relative;
-  width: 1200px;
-  margin: auto;
-  zoom: 0.65;
-}
-#controls,
-#controls-2,
-#controls-3 {
-  position: absolute;
-  left: 700px;
-  background: rgba(255,255,255,0.9);
-  padding: 8px;
-  border-radius: 4px;
+  padding: 1em;
+  background: #111;
   font-family: sans-serif;
 }
-#controls   { top: 10px; font-size: 25px}
-#controls-2 { top: 80px; font-size: 25px}
-#controls-3 { top: 150px; font-size: 25px}
+
+#player {
+  position: relative;
+  margin: 0 auto;
+  width: 55vw;
+  text-align: center;
+}
+
+/* slider + label in top-right */
+#controls {
+  position: absolute;
+  top: 1.5em;
+  right: 1.5em;
+  color: white;
+  font-size: 1em;
+}
+
+#controls label {
+  margin-right: 0.5em;
+}
+
+#controls input[type="range"] {
+  vertical-align: middle;
+}
+
+/* slider + label in top-right */
+#controls-2 {
+  position: absolute;
+  top: 4.5em;
+  right: 1.4em;
+  color: white;
+  font-size: 1em;
+}
+
+#controls-2 label {
+  margin-right: 0.5em;
+}
+
+#controls-2 input[type="range"] {
+  vertical-align: middle;
+}
+
+/* reset button in top-left */
 #reset-btn {
   position: absolute;
-  top: 230px;
-  left: 710px;
-  padding: 6px 12px;
-  font-size: 25px;
+  top: 1.5em;
+  left: -4em;
+  padding: 0.75em 1.5em;
+  border: none;
+  border-radius: 5px;
+  background-color: #3050c2; /* darken(#85c226, 15%) */
+  color: white;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
-/* smooth scaling on hover */
-#reset-btn {
-  transition: transform 0.2s ease;
-}
-
-/* hover makes it pop */
 #reset-btn:hover {
-  transform: scale(1.1);
+  opacity: 0.9;
 }
 
-/* define a quick bounce */
-@keyframes btn-bounce {
-  0%   { transform: scale(1); }
-  25%  { transform: scale(1.15); }
-  50%  { transform: scale(0.95); }
-  75%  { transform: scale(1.05); }
-  100% { transform: scale(1); }
+canvas {
+  width: calc(100% - 4em);
+  transition: transform 1s;
 }
 
-/* a utility class we’ll toggle via JS */
-.bounce {
-  animation: btn-bounce 300ms ease-out;
+canvas.flip {
+  transform: rotate(180deg);
 }

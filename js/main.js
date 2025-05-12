@@ -12,7 +12,7 @@ const hexXOffset      = 350;
 const hexYSpacing     = 38;
 const hexXSpacing     = 44;
 const hexSize         = 20;
-const boundaryHexSize = 33;
+const boundaryHexSize = 30;
 const hexChamfer      = 3;
 const ballSize        = 3.25;
 const ballFriction    = 0;
@@ -166,7 +166,7 @@ function buildScene(pegRows, numBeads) {
 
   // floor
   const floorY = baseY + tubeHeight / 2 + borderWidth / 2;
-  const floor  = Bodies.rectangle(width / 2 - 220, floorY-10, width*0.6, 85, { isStatic: true, render: style.transparent });
+  const floor  = Bodies.rectangle(width/3.3 , floorY, width/1.5, borderWidth*1.2, { isStatic: true, render: style.transparent });
 
   World.add(world, [ balls, ...hexes, ...tubes, leftWall, rightWall, floor ]);
 }
@@ -205,22 +205,35 @@ $(document).ready(() => {
     $beadDisplay.text(parseInt($beadSlider.val(), 10));
   }
 
+  // initial display and controls
   updateRowDisplay();
   updateBeadDisplay();
   buildBiasControls(parseInt($rowSlider.val(), 10));
 
+  // live update sliders and preview
   $rowSlider.on('input', () => {
     updateRowDisplay();
     buildBiasControls(parseInt($rowSlider.val(), 10));
+    setup(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10));
   });
-  $beadSlider.on('input', updateBeadDisplay);
 
+  $beadSlider.on('input', () => {
+    updateBeadDisplay();
+    setup(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10));
+  });
+
+  // start simulation
   $('#start-btn').on('click', () => {
     setup(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10));
     startSim();
   });
 
-  $('#reset-btn').on('click', () => window.location.reload());
+  // reset beads only
+  $('#reset-btn').on('click', () => {
+    setup(currentRows, currentBeads);
+    $('#start-btn').prop('disabled', false);
+  });
 
+  // initial paused setup
   setup(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10));
 });

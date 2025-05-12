@@ -21,8 +21,8 @@ body {
 /* slider + label in top-right */
 #controls {
   position: absolute;
-  top: 1.5em;
-  right: 1.5em;
+  top: 8em;
+  left: -8em;
   color: white;
   font-size: 1em;
 }
@@ -38,8 +38,8 @@ body {
 /* slider + label in top-right */
 #controls-2 {
   position: absolute;
-  top: 4.5em;
-  right: 1.4em;
+  top: 10em;
+  left: -7.5em;
   color: white;
   font-size: 1em;
 }
@@ -79,7 +79,7 @@ body {
 /* reset button in top-left */
 #reset-btn {
   position: absolute;
-  top: 1.5em;
+  top: 5.5em;
   left: -4em;
   padding: 0.75em 1.5em;
   border: none;
@@ -97,11 +97,11 @@ body {
 #start-btn {
   position: absolute;
   top: 1.5em;
-  left: 1.5em;
+  left: -3.5em;
   padding: 0.75em 1.5em;
   border: none;
   border-radius: 5px;
-  background-color: #85c226;
+  background-color: #3050c2;
   color: white;
   cursor: pointer;
   text-transform: uppercase;

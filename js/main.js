@@ -11,8 +11,7 @@ const {
 } = Matter;
 
 // —— configuration constants ——
-const width            = 750;
-const height           = 530;
+const width            = 1000;
 const borderWidth      = 20;
 const hexYOffset        = 50;
 const hexXOffset        = 350;
@@ -26,6 +25,8 @@ const ballCols          = 24;
 const ballSize          = 3.25;
 const ballFriction      = 0;
 const ballRestitution   = 0.25;
+const containerYOffset = 50;
+const height           = 530 + containerYOffset ;
 
 // —— render styles ——
 const style = {
@@ -97,11 +98,12 @@ for (let row = 2; row < 11; row++) {
 
 // 5) build the bins (tubes) and funnel
 const tubes = [];
+console.log('Building tubes…');
 for (let i = 0; i < 10; i++) {
   tubes.push(
     Bodies.rectangle(
       174 + i * hexXSpacing,
-      470,
+      470 + containerYOffset,
       32, 100,
       { isStatic: true, render: style.transparent }
     )

@@ -7,7 +7,7 @@ let engine, world, render, runner;
 // —— configuration constants ——
 const width            = 1200;
 const borderWidth      = 20;
-const hexYOffset       = 50;
+const hexYOffset       = 450;
 const hexXOffset       = 350;
 const hexYSpacing      = 38;
 const hexXSpacing      = 44;
@@ -20,9 +20,11 @@ const ballSize         = 3.25;
 const ballFriction     = 0;
 const ballRestitution  = 0.25;
 const tubeWidth        = 32;
-const tubeHeight       = 150;
-const funnelHeight     = 150;
+const tubeHeight       = 315;
+const funnelHeight     = 1000;
 const tubeOffset       = 22;
+const beadXOffset      = 187;
+const beadYOffset      = 175;
 
 
 // —— render styles ——
@@ -32,7 +34,7 @@ const style = {
   ball:        { fillStyle: '#85c226', strokeStyle: '#222' }
 };
 
-function init(pegRows) {
+function init(pegRows, numBeads) {
   // 1) tear down any existing simulation
   if (runner)       Runner.stop(runner);
   if (render) {
@@ -62,18 +64,51 @@ function init(pegRows) {
     }
   });
 
-  // 5) build the ball pyramid
-  const balls = Composites.pyramid(
-    0, 0,
-    ballCols, ballRows,
-    0, 0,
-    (x, y) => Bodies.circle(x, y, ballSize, {
-      render:      style.ball,
-      friction:    ballFriction,
-      restitution: ballRestitution
-    })
-  );
-  Composite.rotate(balls, Math.PI, Vector.create(225, hexYOffset));
+  // 5) build balls from a single numBeads value
+// const numBeads = 1000/* e.g. from your slider */;
+const balls = Composite.create();
+
+// figure out how many full rows: n(n+1)/2 ≤ numBeads < (n+1)(n+2)/2
+const fullRows = Math.floor((Math.sqrt(8*numBeads + 1) - 1) / 2);
+const usedInFull = fullRows * (fullRows + 1) / 2;
+const leftover   = numBeads - usedInFull;
+
+// spacing between centres
+const gap = ballSize * 2 + 1;
+
+// helper to add one row of count beads at row index `r`
+function addRow(r, count) {
+  const y = r * gap;
+  const totalWidth = (count - 1) * gap;
+  for (let i = 0; i < count; i++) {
+    const x = i * gap - totalWidth / 2;
+    Composite.add(balls,
+      Bodies.circle(x, y, ballSize, {
+        render:      style.ball,
+        friction:    ballFriction,
+        restitution: ballRestitution
+      })
+    );
+  }
+}
+
+// full rows 0 → fullRows–1, each with row+1 beads
+for (let row = 0; row < fullRows; row++) {
+  addRow(row, row + 1);
+}
+
+// one extra row if there are leftovers
+if (leftover > 0) {
+  addRow(fullRows, leftover);
+}
+
+// flip & position exactly like the old pyramid
+Composite.rotate(
+  balls,
+  Math.PI,
+  Vector.create(beadXOffset, beadYOffset)
+);
+
 
   // 6) build the hex‐peg grid
   const hexes = [];
@@ -132,8 +167,8 @@ for (let i = 0; i < bins; i++) {
 
   // funnel sides
   tubes.push(
-    Bodies.rectangle(310, 60,  30, funnelHeight, { isStatic: true, angle: -0.2 * Math.PI, render: style.transparent }),
-    Bodies.rectangle(434, 60,  30, funnelHeight, { isStatic: true, angle:  0.2 * Math.PI, render: style.transparent })
+    Bodies.rectangle(150, 60,  30, funnelHeight, { isStatic: true, angle: -0.13 * Math.PI, render: style.transparent }),
+    Bodies.rectangle(600, 60,  30, funnelHeight, { isStatic: true, angle:  0.13 * Math.PI, render: style.transparent })
   );
 
   // 8) outer walls
@@ -156,6 +191,8 @@ for (let i = 0; i < bins; i++) {
 $(document).ready(() => {
   const $slider  = $('#row-slider');
   const $display = $('#row-count');
+  const $sliderr = $('#bead-slider');
+  const $displayy = $('#bead-count')
 
   // helper to compute what actually shows in the sim
   function displayRows(raw) {
@@ -165,6 +202,7 @@ $(document).ready(() => {
 
   // initial label
   $display.text(displayRows(parseInt($slider.val(), 10)));
+  $displayy.text(parseInt($sliderr.val(), 10));
 
   // live‐update label (raw−2)
   $slider.on('input', () => {
@@ -172,13 +210,29 @@ $(document).ready(() => {
     $display.text(displayRows(raw));
   });
 
-  // rebuild on slider change using the raw value
-  $slider.on('change', () => {
-    init(parseInt($slider.val(), 10));
+  // live‐update label (raw−2)
+  $sliderr.on('input', () => {
+    const beads = parseInt($sliderr.val(), 10);
+    $displayy.text(beads);
   });
 
+  // rebuild on slider change using the raw value
+  $slider.on('change', () => {
+   const rows  = parseInt($slider.val(),  10);
+    const beads = parseInt($sliderr.val(), 10);
+     init(rows, beads);
+   });
+
+  // rebuild on slider change using the raw value
+  $sliderr.on('change', () => {
+   const rows  = parseInt($slider.val(),  10);
+    const beads = parseInt($sliderr.val(), 10);
+     init(rows, beads);
+   });
+
   // kick everything off
-  init(parseInt($slider.val(), 10));
+  init(parseInt($slider.val(), 10), parseInt($sliderr.val(), 10));
+
 
   // Reset button
   $('#reset-btn').on('click', () => window.location.reload());

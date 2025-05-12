@@ -12,7 +12,7 @@ const hexXOffset       = 350;
 const hexYSpacing      = 38;
 const hexXSpacing      = 44;
 const hexSize          = 20;
-const boundaryHexSize  = 27;
+const boundaryHexSize  = 30;
 const hexChamfer       = 3;
 const ballSize         = 3.25;
 const ballFriction     = 0;
@@ -29,7 +29,8 @@ const beadYOffset      = 175;
 const style = {
   boundary:    { fillStyle: '#F0F0F0', strokeStyle: 'transparent' },
   transparent: { fillStyle: '#222',    strokeStyle: 'transparent' },
-  ball:        { fillStyle: '#3050c2', strokeStyle: '#222' }
+  ball:        { fillStyle: '#3050c2', strokeStyle: '#222' },
+  temp:        { fillStyle: '#000000', strokeStyle: 'transparent'}
 };
 
 function init(pegRows, numBeads) {
@@ -169,11 +170,6 @@ for (let i = 0; i < bins; i++) {
     Bodies.rectangle(600, 60,  30, funnelHeight, { isStatic: true, angle:  0.13 * Math.PI, render: style.transparent })
   );
 
-// Funnel behind hex walls
-  tubes.push(
-    Bodies.rectangle(500, 700,  10, 450, { isStatic: true, angle: -0.17 * Math.PI, render: style.transparent }),
-    Bodies.rectangle(230, 700,  10, 450, { isStatic: true, angle:  0.17 * Math.PI, render: style.transparent })
-  );
 
   // 8) outer walls
   const walls = [

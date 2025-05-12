@@ -51,6 +51,30 @@ body {
   vertical-align: middle;
 }
 
+/* below the bead‐count slider */
+#bias-controls {
+  position: absolute;
+  top: 7.5em;
+  right: 1.5em;
+  width: 200px;
+  color: white;
+  font-size: 0.9em;
+}
+
+#bias-controls .bias-row {
+  margin-bottom: 0.5em;
+}
+
+#bias-controls label {
+  display: block;
+  margin-bottom: 0.2em;
+}
+
+#bias-controls input[type="range"] {
+  width: 100%;
+}
+
+
 /* reset button in top-left */
 #reset-btn {
   position: absolute;

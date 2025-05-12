@@ -1,57 +1,99 @@
-// js/main.js
 // Matter.js module aliases
-const { Engine, Render, Runner, World, Bodies, Composite, Composites, Vector } = Matter;
+const { Engine, Render, Runner, World, Bodies, Composite, Vector, Events, Body } = Matter;
 
 let engine, world, render, runner;
 
 // —— configuration constants ——
-const width            = 1200;
-const borderWidth      = 60;
-const hexYOffset       = 450;
-const hexXOffset       = 350;
-const hexYSpacing      = 38;
-const hexXSpacing      = 44;
-const hexSize          = 20;
-const boundaryHexSize  = 30;
-const hexChamfer       = 3;
-const ballSize         = 3.25;
-const ballFriction     = 0;
-const ballRestitution  = 0.25;
-const tubeWidth        = 32;
-const tubeHeight       = 315;
-const funnelHeight     = 1000;
-const tubeOffset       = 22;
-const beadXOffset      = 187;
-const beadYOffset      = 175;
-
+const width           = 1200;
+const borderWidth     = 100;
+const hexYOffset      = 450;
+const hexXOffset      = 350;
+const hexYSpacing     = 38;
+const hexXSpacing     = 44;
+const hexSize         = 20;
+const boundaryHexSize = 33;
+const hexChamfer      = 3;
+const ballSize        = 3.25;
+const ballFriction    = 0;
+const ballRestitution = 0.25;
+const tubeWidth       = 32;
+const tubeHeight      = 315;
+const funnelHeight    = 1000;
+const tubeOffset      = 22;
+const beadXOffset     = 187;
+const beadYOffset     = 175;
 
 // —— render styles ——
 const style = {
   boundary:    { fillStyle: '#F0F0F0', strokeStyle: 'transparent' },
   transparent: { fillStyle: '#222',    strokeStyle: 'transparent' },
   ball:        { fillStyle: '#3050c2', strokeStyle: '#222' },
-  temp:        { fillStyle: '#000000', strokeStyle: 'transparent'}
+  temp:         {fillStyle: '#111', strokeStyle: 'transparent'}
 };
 
+// global biases array (0.0 → always left, 1.0 → always right)
+const biases = [];
+
+// build one slider per peg-row
+function buildBiasControls(maxRows) {
+  const $biasContainer = $('#bias-controls').empty();
+  for (let row = 2; row <= maxRows; row++) {
+    if (biases[row] === undefined) biases[row] = 0.5;
+    const displayRow = row - 1;
+    const id = `bias-${row}`;
+    const $wrapper = $(`<div class="bias-row"></div>`);
+    $wrapper.append(
+      `<label for="${id}">Row ${displayRow} bias: <span id="${id}-val">${biases[row].toFixed(2)}</span></label>`
+    );
+    const $slider = $(`<input type="range" id="${id}" min="0" max="1" step="0.01" value="${biases[row]}">`);
+    $slider.on('input', () => {
+      biases[row] = parseFloat($slider.val());
+      $(`#${id}-val`).text(biases[row].toFixed(2));
+    });
+    $wrapper.append($slider);
+    $biasContainer.append($wrapper);
+  }
+}
+
 function init(pegRows, numBeads) {
-  // 1) tear down any existing simulation
-  if (runner)       Runner.stop(runner);
+  // tear down existing simulation
+  if (runner) Runner.stop(runner);
   if (render) {
     Render.stop(render);
     render.canvas.remove();
     render.textures = {};
   }
 
-  // 2) recalc dynamic sizes
-  const rows         = pegRows;
-  // const bins         = rows + 1;
+  // dynamic sizes
+  const rows = pegRows;
   const canvasHeight = hexYOffset + rows * hexYSpacing + funnelHeight + (tubeHeight / 2) + borderWidth;
 
-  // 3) create engine + world
+  // engine + world
   engine = Engine.create();
   world  = engine.world;
 
-  // 4) set up renderer
+  // biased collision handler
+  Events.on(engine, 'collisionStart', event => {
+    event.pairs.forEach(pair => {
+      let ball, peg;
+      if (pair.bodyA.label === 'ball' && pair.bodyB.label === 'peg') {
+        ball = pair.bodyA; peg = pair.bodyB;
+      } else if (pair.bodyB.label === 'ball' && pair.bodyA.label === 'peg') {
+        ball = pair.bodyB; peg = pair.bodyA;
+      } else {
+        return;
+      }
+      const bias = biases[peg.row] ?? 0.5;
+      const dir = Math.random() < bias ? 1 : -1;
+      const forceMagnitude = 0.0015;
+      Body.applyForce(ball, ball.position, { x: forceMagnitude * dir, y: 0 });
+
+      const speed = 0.9;
+      Body.setVelocity(ball, { x: dir * speed, y: ball.velocity.y });
+    });
+  });
+
+  // renderer
   render = Render.create({
     element: document.getElementById('player'),
     engine: engine,
@@ -63,53 +105,43 @@ function init(pegRows, numBeads) {
     }
   });
 
-  // 5) build balls from a single numBeads value
-// const numBeads = 1000/* e.g. from your slider */;
-const balls = Composite.create();
+  // build beads
+  const balls = Composite.create();
+  const fullRows = Math.floor((Math.sqrt(8*numBeads + 1) - 1) / 2);
+  const usedInFull = fullRows * (fullRows + 1) / 2;
+  const leftover   = numBeads - usedInFull;
+  const gap = ballSize * 2 + 1;
 
-// figure out how many full rows: n(n+1)/2 ≤ numBeads < (n+1)(n+2)/2
-const fullRows = Math.floor((Math.sqrt(8*numBeads + 1) - 1) / 2);
-const usedInFull = fullRows * (fullRows + 1) / 2;
-const leftover   = numBeads - usedInFull;
-
-// spacing between centres
-const gap = ballSize * 2 + 1;
-
-// helper to add one row of count beads at row index `r`
-function addRow(r, count) {
-  const y = r * gap;
-  const totalWidth = (count - 1) * gap;
-  for (let i = 0; i < count; i++) {
-    const x = i * gap - totalWidth / 2;
-    Composite.add(balls,
-      Bodies.circle(x, y, ballSize, {
-        render:      style.ball,
-        friction:    ballFriction,
-        restitution: ballRestitution
-      })
-    );
+  function addRow(r, count) {
+    const y = r * gap;
+    const totalWidth = (count - 1) * gap;
+    for (let i = 0; i < count; i++) {
+      const x = i * gap - totalWidth / 2;
+      Composite.add(balls,
+        Bodies.circle(x, y, ballSize, {
+          label:       'ball',
+          render:      style.ball,
+          friction:    ballFriction,
+          restitution: ballRestitution,
+          frictionAir: 0.02   // ◀ small drag
+        })
+      );
+    }
   }
-}
 
-// full rows 0 → fullRows–1, each with row+1 beads
-for (let row = 0; row < fullRows; row++) {
-  addRow(row, row + 1);
-}
+  for (let row = 0; row < fullRows; row++) {
+    addRow(row, row + 1);
+  }
+  if (leftover > 0) {
+    addRow(fullRows, leftover);
+  }
+  Composite.rotate(
+    balls,
+    Math.PI,
+    Vector.create(beadXOffset, beadYOffset)
+  );
 
-// one extra row if there are leftovers
-if (leftover > 0) {
-  addRow(fullRows, leftover);
-}
-
-// flip & position exactly like the old pyramid
-Composite.rotate(
-  balls,
-  Math.PI,
-  Vector.create(beadXOffset, beadYOffset)
-);
-
-
-  // 6) build the hex‐peg grid
+  // hex peg grid
   const hexes = [];
   for (let row = 2; row <= rows; row++) {
     for (let col = 1; col <= row; col++) {
@@ -119,7 +151,6 @@ Composite.rotate(
       let   size, renderOpt, yOffset = 0;
 
       if (col === 1 || col === row) {
-        // edge pegs transparent
         const dir = col === 1 ? -1 : 1;
         x += dir * (boundaryHexSize / 4);
         yOffset = -4;
@@ -130,110 +161,81 @@ Composite.rotate(
         renderOpt = style.boundary;
       }
 
-      hexes.push(
-        Bodies.polygon(
-          x, y + yOffset,
-          6, size,
-          { isStatic: true, render: renderOpt, chamfer: { radius: hexChamfer } }
-        )
+      const peg = Bodies.polygon(
+        x, y + yOffset,
+        6, size,
+        { isStatic: true, render: renderOpt, chamfer: { radius: hexChamfer }, label: 'peg' }
       );
+      peg.row = row;
+      hexes.push(peg);
     }
   }
 
-
-  // how many bins?
-const bins = pegRows;
-// figure out where the *first* bin should sit:
-// start from the center‐offset you already have (hexXOffset),
-// then back up half the span of your peg‐row
-const tubeStartX = hexXOffset - (pegRows * hexXSpacing) / 2 + (hexXSpacing / 2) + tubeOffset;
-
-const tubes = [];
-const baseY = hexYOffset + pegRows * hexYSpacing + (tubeHeight / 2);
-
-for (let i = 0; i < bins; i++) {
-  const x = tubeStartX + i * hexXSpacing;
-  tubes.push(
-    Bodies.rectangle(
-      x,
-      baseY,
-      tubeWidth, tubeHeight,
-      { isStatic: true, render: style.transparent }
-    )
-  );
-}
-
-
-  // funnel sides
+  // tubes + funnel + walls
+  const bins = pegRows;
+  const tubeStartX = hexXOffset - (pegRows * hexXSpacing) / 2 + (hexXSpacing / 2) + tubeOffset;
+  const tubes = [];
+  const baseY = hexYOffset + pegRows * hexYSpacing + (tubeHeight / 2);
+  for (let i = 0; i < bins; i++) {
+    const x = tubeStartX + i * hexXSpacing;
+    tubes.push(
+      Bodies.rectangle(x, baseY, tubeWidth, tubeHeight, { isStatic: true, render: style.transparent })
+    );
+  }
   tubes.push(
     Bodies.rectangle(150, 60,  30, funnelHeight, { isStatic: true, angle: -0.13 * Math.PI, render: style.transparent }),
     Bodies.rectangle(600, 60,  30, funnelHeight, { isStatic: true, angle:  0.13 * Math.PI, render: style.transparent })
   );
 
-
-  // 8) outer walls
   const walls = [
     Bodies.rectangle(380,   0,          500, borderWidth, { isStatic: true, render: style.transparent }),
-    Bodies.rectangle(373,   baseY+tubeHeight/2, tubeWidth*1.4*bins, borderWidth, { isStatic: true, render: style.transparent }),
-    // Bodies.rectangle(  -50,       canvasHeight/2, borderWidth, canvasHeight, { isStatic: true, render: style.transparent }),
-    // Bodies.rectangle(width,     canvasHeight/2, borderWidth, canvasHeight, { isStatic: true, render: style.transparent })
+    Bodies.rectangle(373,   baseY + tubeHeight / 2, tubeWidth * 1.4 * bins, borderWidth, { isStatic: true, render: style.transparent })
   ];
 
-  // 9) add all bodies
+  tubes.push(
+      Bodies.rectangle(373, baseY+150,  90, 450, { isStatic: true, angle: 0.5* Math.PI, render: style.temp })
+  )
+
   World.add(world, [ balls, ...hexes, ...tubes, ...walls ]);
 
-  // 10) start physics + render loops
   runner = Runner.create();
   Runner.run(runner, engine);
   Render.run(render);
 }
 
+// on document ready
 $(document).ready(() => {
-  const $slider  = $('#row-slider');
-  const $display = $('#row-count');
-  const $sliderr = $('#bead-slider');
-  const $displayy = $('#bead-count')
+  const $rowSlider   = $('#row-slider');
+  const $beadSlider  = $('#bead-slider');
+  const $rowDisplay  = $('#row-count');
+  const $beadDisplay = $('#bead-count');
 
-  // helper to compute what actually shows in the sim
-  function displayRows(raw) {
-    // clamp at 0 so you don’t get negative numbers
-    return Math.max(0, raw - 2);
+  function updateRowDisplay() {
+    $rowDisplay.text(Math.max(0, parseInt($rowSlider.val(), 10) - 2));
+  }
+  function updateBeadDisplay() {
+    $beadDisplay.text(parseInt($beadSlider.val(), 10));
   }
 
-  // initial label
-  $display.text(displayRows(parseInt($slider.val(), 10)));
-  $displayy.text(parseInt($sliderr.val(), 10));
+  // initial labels & bias controls
+  updateRowDisplay();
+  updateBeadDisplay();
+  buildBiasControls(parseInt($rowSlider.val(), 10));
 
-  // live‐update label (raw−2)
-  $slider.on('input', () => {
-    const raw = parseInt($slider.val(), 10);
-    $display.text(displayRows(raw));
+  // live‐update labels & bias sliders on input
+  $rowSlider.on('input', () => {
+    updateRowDisplay();
+    buildBiasControls(parseInt($rowSlider.val(), 10));
   });
+  $beadSlider.on('input', updateBeadDisplay);
 
-  // live‐update label (raw−2)
-  $sliderr.on('input', () => {
-    const beads = parseInt($sliderr.val(), 10);
-    $displayy.text(beads);
-  });
-
-  // rebuild on slider change using the raw value
-  $slider.on('change', () => {
-   const rows  = parseInt($slider.val(),  10);
-    const beads = parseInt($sliderr.val(), 10);
-     init(rows, beads);
-   });
-
-  // rebuild on slider change using the raw value
-  $sliderr.on('change', () => {
-   const rows  = parseInt($slider.val(),  10);
-    const beads = parseInt($sliderr.val(), 10);
-     init(rows, beads);
-   });
-
-  // kick everything off
-  init(parseInt($slider.val(), 10), parseInt($sliderr.val(), 10));
-
+  // rebuild simulation on change
+  $rowSlider.on('change', () => init(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10)));
+  $beadSlider.on('change', () => init(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10)));
 
   // Reset button
   $('#reset-btn').on('click', () => window.location.reload());
+
+  // kick things off
+  init(parseInt($rowSlider.val(), 10), parseInt($beadSlider.val(), 10));
 });

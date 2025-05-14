@@ -14,10 +14,10 @@ const hexXSpacing     = 44;
 const hexSize         = 20;
 const boundaryHexSize = 30;
 const hexChamfer      = 3;
-const ballSize        = 3.25;
-const ballFriction    = 0;
+const ballSize        = 3.5;
+const ballFriction    = 0.0001;
 const ballRestitution = 0.25;
-const tubeWidth       = 32;
+const tubeWidth       = 35;
 const tubeHeight      = 315;
 const funnelHeight    = 1000;
 const tubeOffset      = 22;
@@ -111,8 +111,9 @@ function buildScene(pegRows, numBeads) {
         label:       'ball',
         render:      style.ball,
         friction:    ballFriction,
-        restitution: ballRestitution,
-        frictionAir: 0.02
+        restitution: 0,
+        frictionAir: 0.05,
+        frictionStatic: 0.1
       }));
     }
   }
@@ -166,7 +167,7 @@ function buildScene(pegRows, numBeads) {
 
   // floor
   const floorY = baseY + tubeHeight / 2 + borderWidth / 2;
-  const floor  = Bodies.rectangle(width/3.3 , floorY, width/1.5, borderWidth*1.2, { isStatic: true, render: style.transparent });
+  const floor  = Bodies.rectangle(width/3.3 , floorY, width/1.5, borderWidth*1.5, { isStatic: true, render: style.transparent });
 
   World.add(world, [ balls, ...hexes, ...tubes, leftWall, rightWall, floor ]);
 }

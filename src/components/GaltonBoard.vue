@@ -22,9 +22,9 @@ export default defineComponent({
             canvasConfig: {
                 width: 400,
                 height: 700,
-                backgroundColor: "yellow",
+                backgroundColor: "#222",
                 borderWidth: 15,
-                borderColor: "red",
+                borderColor: "gray",
             },
             // Ramp Configuration
             rampConfig: {
@@ -35,7 +35,7 @@ export default defineComponent({
             },
             // Nails Configuration
             nailsConfig: {
-                color: "blue",
+                color: "#444",
                 yMarginInit: 45,
                 yMargin: 2.2,
                 radius: 6,
@@ -67,7 +67,7 @@ export default defineComponent({
             ballsConfig: {
                 number: 1200,
                 radius: 3,
-                colors: ["green", "orange", "black", "white"],
+                colors: ["green"],
                 friction: 0.00001,
                 restitution: 0.7,
                 density: 0.001,

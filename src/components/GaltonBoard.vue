@@ -344,8 +344,10 @@ export default defineComponent({
                 }
             }, this.ballsConfig.spawnInterval);
         },
-        start() {
-            this.reset();
+        initializeBoard() {
+            if (this.engine) {
+                return;
+            }
 
             this.engine = this.Engine.create({ enableSleeping: true });
             this.engine.gravity.y = this.simulationParams.gravity;
@@ -374,14 +376,23 @@ export default defineComponent({
                 ...this.walls,
             ]);
 
+            this.Render.run(this.render);
+        },
+        start() {
+            this.reset();
+
+            if (!this.engine || !this.render) {
+                this.initializeBoard();
+            }
+
             this.simulationParams.isRunning = true;
             this.simulationParams.ballCounter = 0;
 
-            this.simulate(this.engine);
+            this.simulate(this.engine as Matter.Engine);
 
             this.runner = this.Runner.create();
-            this.Runner.run(this.runner, this.engine);
-            this.Render.run(this.render);
+            this.Runner.run(this.runner, this.engine as Matter.Engine);
+            this.Render.run(this.render as Matter.Render);
         },
         reset() {
             this.simulationParams.isRunning = false;
@@ -398,22 +409,19 @@ export default defineComponent({
             }
             if (this.render) {
                 this.Render.stop(this.render);
-                this.render = null;
             }
             if (this.engine) {
                 Matter.World.clear(this.engine.world, true);
                 Matter.Engine.clear(this.engine);
-                this.engine = null;
             }
-
-            const container = document.getElementById("galtonCanvasContainer");
-            if (container) {
-                container.innerHTML = "";
+            if (this.render && this.engine) {
+                // draw the static board after clearing balls
+                this.Render.world(this.render);
             }
         },
     },
     mounted() {
-        this.start();
+        this.initializeBoard();
     },
 });
 </script>

@@ -414,6 +414,10 @@ export default defineComponent({
                 Matter.World.clear(this.engine.world, true);
                 Matter.Engine.clear(this.engine);
             }
+            if (this.render && this.engine) {
+                // draw the static board after clearing balls
+                this.Render.world(this.render);
+            }
         },
     },
     mounted() {

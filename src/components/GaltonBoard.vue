@@ -16,8 +16,8 @@ export default defineComponent({
         const Runner = Matter.Runner;
         return { Engine, Render, World, Bodies, Runner };
     },
-    data() {
-        return {
+        data() {
+            return {
             // Canvas Configuration
             canvasConfig: {
                 width: 400,
@@ -87,6 +87,8 @@ export default defineComponent({
             runner: null as Matter.Runner | null,
             render: null as Matter.Render | null,
             ballInterval: null as number | null,
+            // keep track of balls that have settled so we can render them
+            settledBalls: [] as { x: number; y: number; r: number; color: string }[],
         };
     },
     computed: {
@@ -324,15 +326,37 @@ export default defineComponent({
 
             return ball;
         },
+
+        drawSettledBalls() {
+            if (!this.render) {
+                return;
+            }
+            const context = this.render.context as CanvasRenderingContext2D;
+            this.settledBalls.forEach((b) => {
+                context.beginPath();
+                context.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                context.fillStyle = b.color;
+                context.fill();
+                context.closePath();
+            });
+        },
         simulate(engine: Matter.Engine) {
             // Generate a ball every spawnInterval milliseconds until we reach the configured number
             this.ballInterval = window.setInterval(() => {
                 if (this.simulationParams.isRunning) {
                     const ball = this.createBall();
 
-                    // When the ball starts "sleeping", mark it as static (without stopping the simulation)
+                    // When a ball settles, remove it from the physics world to
+                    // keep performance high but store its last position so we
+                    // can continue rendering it
                     Matter.Events.on(ball, "sleepStart", () => {
-                        Matter.Body.setStatic(ball, true);
+                        this.settledBalls.push({
+                            x: ball.position.x,
+                            y: ball.position.y,
+                            r: this.ballsConfig.radius,
+                            color: ball.render.fillStyle as string,
+                        });
+                        this.World.remove(engine.world, ball);
                     });
 
                     this.World.add(engine.world, ball);
@@ -376,6 +400,9 @@ export default defineComponent({
                 ...this.walls,
             ]);
 
+            // draw settled balls after each render tick so they remain visible
+            Matter.Events.on(this.render, "afterRender", () => this.drawSettledBalls());
+
             this.Render.run(this.render);
         },
         start() {
@@ -398,6 +425,7 @@ export default defineComponent({
             this.simulationParams.isRunning = false;
             this.simulationParams.ballCounter = 0;
             this.simulationParams.ballColorIndex = 0;
+            this.settledBalls = [];
 
             if (this.ballInterval) {
                 clearInterval(this.ballInterval);

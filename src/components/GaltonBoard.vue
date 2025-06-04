@@ -330,9 +330,11 @@ export default defineComponent({
                 if (this.simulationParams.isRunning) {
                     const ball = this.createBall();
 
-                    // When the ball starts "sleeping", mark it as static (without stopping the simulation)
+                    // When the ball goes to sleep make it static and remove it
+                    // from the physics world so it no longer affects new balls
                     Matter.Events.on(ball, "sleepStart", () => {
                         Matter.Body.setStatic(ball, true);
+                        Matter.World.remove(engine.world, ball);
                     });
 
                     this.World.add(engine.world, ball);

@@ -77,11 +77,16 @@ export default defineComponent({
             },
             // Simulation Parameters
             simulationParams: {
-                isRunning: true,
+                isRunning: false,
                 ballCounter: 0,
                 ballColorIndex: 0,
                 gravity: 1.5,
             },
+            // Runtime objects
+            engine: null as Matter.Engine | null,
+            runner: null as Matter.Runner | null,
+            render: null as Matter.Render | null,
+            ballInterval: null as number | null,
         };
     },
     computed: {
@@ -321,7 +326,7 @@ export default defineComponent({
         },
         simulate(engine: Matter.Engine) {
             // Generate a ball every spawnInterval milliseconds until we reach the configured number
-            setInterval(() => {
+            this.ballInterval = window.setInterval(() => {
                 if (this.simulationParams.isRunning) {
                     const ball = this.createBall();
 
@@ -339,40 +344,76 @@ export default defineComponent({
                 }
             }, this.ballsConfig.spawnInterval);
         },
+        start() {
+            this.reset();
+
+            this.engine = this.Engine.create({ enableSleeping: true });
+            this.engine.gravity.y = this.simulationParams.gravity;
+
+            this.render = this.Render.create({
+                element: document.getElementById("galtonCanvasContainer") as HTMLElement,
+                engine: this.engine,
+                options: {
+                    width: this.canvasConfig.width,
+                    height: this.canvasConfig.height,
+                    wireframes: false,
+                    background: this.canvasConfig.backgroundColor,
+                },
+            });
+
+            this.World.add(this.engine.world, [
+                this.borderTop,
+                this.borderBottom,
+                this.borderRight,
+                this.borderLeft,
+                this.rampLeftTop,
+                this.rampLeftBottom,
+                this.rampRightTop,
+                this.rampRightBottom,
+                ...this.nails,
+                ...this.walls,
+            ]);
+
+            this.simulationParams.isRunning = true;
+            this.simulationParams.ballCounter = 0;
+
+            this.simulate(this.engine);
+
+            this.runner = this.Runner.create();
+            this.Runner.run(this.runner, this.engine);
+            this.Render.run(this.render);
+        },
+        reset() {
+            this.simulationParams.isRunning = false;
+            this.simulationParams.ballCounter = 0;
+            this.simulationParams.ballColorIndex = 0;
+
+            if (this.ballInterval) {
+                clearInterval(this.ballInterval);
+                this.ballInterval = null;
+            }
+            if (this.runner) {
+                this.Runner.stop(this.runner);
+                this.runner = null;
+            }
+            if (this.render) {
+                this.Render.stop(this.render);
+                this.render = null;
+            }
+            if (this.engine) {
+                Matter.World.clear(this.engine.world, true);
+                Matter.Engine.clear(this.engine);
+                this.engine = null;
+            }
+
+            const container = document.getElementById("galtonCanvasContainer");
+            if (container) {
+                container.innerHTML = "";
+            }
+        },
     },
     mounted() {
-        const engine = this.Engine.create({ enableSleeping: true });
-        engine.gravity.y = this.simulationParams.gravity;
-
-        const render = this.Render.create({
-            element: document.getElementById("galtonCanvasContainer") as HTMLElement,
-            engine: engine,
-            options: {
-                width: this.canvasConfig.width,
-                height: this.canvasConfig.height,
-                wireframes: false,
-                background: this.canvasConfig.backgroundColor,
-            },
-        });
-
-        this.World.add(engine.world, [
-            this.borderTop,
-            this.borderBottom,
-            this.borderRight,
-            this.borderLeft,
-            this.rampLeftTop,
-            this.rampLeftBottom,
-            this.rampRightTop,
-            this.rampRightBottom,
-            ...this.nails,
-            ...this.walls,
-        ]);
-
-        this.simulate(engine);
-
-        const runner = this.Runner.create();
-        this.Runner.run(runner, engine);
-        this.Render.run(render);
+        this.start();
     },
 });
 </script>

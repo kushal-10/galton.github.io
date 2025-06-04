@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { margin:0; overflow:hidden; background:#111; color:#fff; font-family:sans-serif }
+    #ui { position:absolute; top:10px; left:10px; }
+    #ui label { display:block; margin-bottom:6px; }
+    #ui input[type=range] { width:150px; }
+    #ui button { margin-top:10px; display:block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <label>Rows: <input id="rows" type="range" min="2" max="20" value="10"></label>
+    <label>Beads:<input id="beads" type="range" min="10" max="2000" value="500"></label>
+    <div id="bias-sliders"></div>
+    <button id="start">Start</button>
+    <button id="reset">Reset</button>
+  </div>
+  <script>
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Setup
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  const cvs = document.getElementById('c'),
+        ctx = cvs.getContext('2d');
+  let W, H;
+  function resize(){
+    W = cvs.width = window.innerWidth;
+    H = cvs.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // UI elements
+  const ui = {
+    rows:    document.getElementById('rows'),
+    beads:   document.getElementById('beads'),
+    start:   document.getElementById('start'),
+    reset:   document.getElementById('reset'),
+    biasCtr: document.getElementById('bias-sliders')
+  };
+
+  // Simulation parameters
+  let numRows   = +ui.rows.value,
+      numBeads  = +ui.beads.value,
+      biases    = [],
+      pegGrid   = [],   // pegGrid[i] = array of {x,y} for row i
+      beads     = [],   // each bead: {path: [ {x,y}... ], idx, t}
+      bins      = [];   // histogram counts
+
+  // Constants for drawing
+  const MARGIN = 80,
+        PEG_R   = 6,
+        SPACING = 30,
+        BIN_W   = 20,
+        GRAVITY = 0.015;  // controls bead speed along each segment
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Build UI for biases
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  function rebuildBiasSliders(){
+    ui.biasCtr.innerHTML = '';
+    biases = [];
+    for(let i=0;i<numRows;i++){
+      const wrap = document.createElement('label'),
+            s    = document.createElement('input'),
+            t    = document.createElement('span');
+      s.type='range'; s.min=0; s.max=1; s.step=0.01; s.value=0.5;
+      t.textContent = ` Row ${i+1} bias: ${s.value}`;
+      s.oninput = () => {
+        biases[i] = +s.value;
+        t.textContent = ` Row ${i+1} bias: ${s.value}`;
+      };
+      biases.push(0.5);
+      wrap.appendChild(t);
+      wrap.appendChild(s);
+      ui.biasCtr.appendChild(wrap);
+    }
+  }
+  rebuildBiasSliders();
+
+  ui.rows.oninput = ()=>{
+    numRows = +ui.rows.value;
+    rebuildBiasSliders();
+    reset();
+  };
+  ui.beads.oninput = ()=>{
+    numBeads = +ui.beads.value;
+    reset();
+  };
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Compute peg positions in a triangular grid
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  function buildPegGrid(){
+    pegGrid = [];
+    const midX = W/2;
+    for(let i=0;i<numRows;i++){
+      const row = [];
+      const y = MARGIN + i*SPACING;
+      // center the row at midX
+      for(let j=0; j<=i; j++){
+        const x = midX + ( (j - i/2) * SPACING );
+        row.push({x,y});
+      }
+      pegGrid.push(row);
+    }
+  }
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Generate one bead’s “fake‐physics” path through the grid
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  function genPath(){
+    let j = 0,
+        path = [];
+    for(let i=0;i<numRows;i++){
+      // hit pegGrid[i][j]
+      const peg = pegGrid[i][j];
+      path.push({x:peg.x, y:peg.y});
+      // pick left/right
+      if (Math.random() < biases[i]) j = Math.min(j+1, i+1);
+    }
+    // final drop into bin at y = bottom
+    const finalX = W/2 + ((j - numRows/2)*SPACING);
+    path.push({x: finalX, y: H - MARGIN});
+    return path;
+  }
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Spawn & reset everything
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  function reset(){
+    cancelAnimationFrame(animID);
+    buildPegGrid();
+    beads = [];
+    bins  = new Array(numRows+1).fill(0);
+    draw();  // draw static board + pegs + empty bins
+  }
+
+  ui.reset.onclick = reset;
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Once you hit “Start”, generate all bead paths up‐front
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  ui.start.onclick = ()=>{
+    beads = [];
+    for(let b=0;b<numBeads;b++){
+      beads.push({
+        path: genPath(),  // array of waypoints
+        idx: 0,           // current segment
+        t:   0            // interpolation 0→1 along that segment
+      });
+    }
+    animate();
+  };
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  Draw background board + pegs + bins histogram
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  function drawBoard(){
+    ctx.clearRect(0,0,W,H);
+    // draw the “walls”
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 40;
+    ctx.beginPath();
+      ctx.moveTo(W/2 - SPACING/2, 0);
+      ctx.lineTo(W/2 - numRows*SPACING/2, MARGIN + numRows*SPACING + 50);
+      ctx.lineTo(W/2 + numRows*SPACING/2, MARGIN + numRows*SPACING + 50);
+      ctx.lineTo(W/2 + SPACING/2, 0);
+    ctx.closePath();
+    ctx.stroke();
+
+    // draw pegs
+    ctx.fillStyle = '#888';
+    for(let row of pegGrid){
+      for(let p of row){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y, PEG_R,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    // draw bins outline
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const binY = H - MARGIN;
+    for(let i=0; i<=numRows; i++){
+      const x = W/2 + ((i - numRows/2)*SPACING);
+      ctx.moveTo(x, binY);
+      ctx.lineTo(x, binY+100);
+    }
+    ctx.stroke();
+  }
+
+  function drawBins(){
+    const binY = H - MARGIN;
+    for(let i=0;i<bins.length;i++){
+      const x = W/2 + ((i - numRows/2)*SPACING) - BIN_W/2;
+      const h = bins[i] * 0.1;       // scale factor for visibility
+      ctx.fillStyle = '#0af';
+      ctx.fillRect(x, binY+100 - h, BIN_W, h);
+    }
+  }
+
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  //  One frame of animation
+  // —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+  let animID;
+  function animate(){
+    drawBoard();
+    drawBins();
+
+    let allDone = true;
+    ctx.fillStyle = '#0af';
+    for(let bead of beads){
+      if (bead.idx >= bead.path.length-1) continue;  // finished
+      allDone = false;
+
+      // interpolate
+      const A = bead.path[bead.idx],
+            B = bead.path[bead.idx+1];
+      bead.t += GRAVITY;
+      if (bead.t >= 1){
+        bead.idx++;
+        bead.t = 0;
+        // if this was the last segment, increment the bin
+        if (bead.idx === bead.path.length-1){
+          // determine which bin: based on x
+          const finalX = bead.path[bead.idx].x;
+          const i = Math.round((finalX - W/2)/(SPACING) + numRows/2);
+          bins[i]++;
+        }
+      }
+      // current position:
+      const x = A.x + (B.x-A.x)*bead.t;
+      const y = A.y + (B.y-A.y)*bead.t;
+      ctx.beginPath();
+      ctx.arc(x,y, 4,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    if (!allDone) animID = requestAnimationFrame(animate);
+  }
+
+  // initial draw
+  reset();
+  </script>
+</body>
+</html>

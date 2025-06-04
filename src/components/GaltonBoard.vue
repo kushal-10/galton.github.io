@@ -330,11 +330,12 @@ export default defineComponent({
                 if (this.simulationParams.isRunning) {
                     const ball = this.createBall();
 
-                    // When the ball goes to sleep make it static and remove it
-                    // from the physics world so it no longer affects new balls
+                    // When the ball goes to sleep make it static and exclude it
+                    // from future collision checks without removing it from the
+                    // world so it remains visible in the container
                     Matter.Events.on(ball, "sleepStart", () => {
                         Matter.Body.setStatic(ball, true);
-                        Matter.World.remove(engine.world, ball);
+                        (ball as Matter.Body).collisionFilter.mask = 0;
                     });
 
                     this.World.add(engine.world, ball);

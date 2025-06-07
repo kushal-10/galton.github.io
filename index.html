@@ -14,15 +14,18 @@
   <div id="container">
     <!-- LEFT PANEL -->
     <div id="leftPanel">
-      <label for="rowSlider">Rows: <span id="rowCount">5</span></label>
+      <label for="rowSlider">Rows: <span id="rowCount">10</span></label>
       <input
         type="range"
         id="rowSlider"
         min="1"
         max="15"
         step="1"
-        value="5"
+        value="10"
       />
+
+      <label for="ballSlider">Balls: <span id="ballCount">500</span></label>
+      <input type="range" id="ballSlider" min="10" max="1000" step="10" value="500" />  
 
       <button id="startBtn">Start</button>
       <button id="stopBtn" disabled>Stop</button>

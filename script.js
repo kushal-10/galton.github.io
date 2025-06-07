@@ -8,6 +8,12 @@ const leftPanel   = document.getElementById('leftPanel');
 const centerPanel = document.getElementById('centerPanel');
 const rightPanel  = document.getElementById('rightPanel');
 
+const ballSlider     = document.getElementById('ballSlider');
+const ballCountLabel = document.getElementById('ballCount');
+
+let totalBalls = parseInt(ballSlider.value, 10);
+let ballsLeft  = totalBalls;
+
 const rowSlider    = document.getElementById('rowSlider');
 const rowCountLbl  = document.getElementById('rowCount');
 const startBtn     = document.getElementById('startBtn');
@@ -68,17 +74,35 @@ window.addEventListener('load', () => {
   rowSlider.addEventListener('input', () => {
     numRows = parseInt(rowSlider.value, 10);
     rowCountLbl.textContent = numRows;
+    
     buildBiasControls();
     rebuildBoard();
+  });
+
+  // Ball Counter 
+  ballSlider.addEventListener('input', () => {
+    totalBalls = parseInt(ballSlider.value, 10);
+    ballCountLabel.textContent = totalBalls;
   });
 
   // START
   startBtn.addEventListener('click', () => {
     if (!isRunning) {
+      ballsLeft = totalBalls;
       isRunning = true;
       startBtn.disabled = true;
-      stopBtn.disabled = false;
-      beadDropInterval = setInterval(dropOneBead, DROP_RATE);
+      stopBtn.disabled  = false;
+  
+      beadDropInterval = setInterval(() => {
+        if (ballsLeft > 0) {
+          dropOneBead();
+          ballsLeft--;
+        } else {
+          clearInterval(beadDropInterval);
+          beadDropInterval = null;
+        }
+      }, DROP_RATE);
+  
       animate();
     }
   });
@@ -111,7 +135,11 @@ window.addEventListener('load', () => {
     rebuildBoard();
     startBtn.disabled = false;
     stopBtn.disabled = true;
+    ballsLeft = totalBalls;
   });
+
+  
+  
 
   // If the window resizes, redraw the board
   window.addEventListener('resize', resizeCanvas);

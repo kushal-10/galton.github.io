@@ -1,0 +1,116 @@
+/* -------------------------------------------
+   Basic Reset & Body Styles
+------------------------------------------- */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #000; /* black behind everything */
+  color: #fff;
+  font-family: sans-serif;
+  overflow: hidden; /* no scrollbars on body */
+}
+
+/* -------------------------------------------
+   Three‐column Flex Layout: Left | Center | Right
+   Now: left=1/4, center=1/2, right=1/4
+------------------------------------------- */
+#container {
+  display: flex;
+  height: 100vh; /* full viewport height */
+  box-sizing: border-box;
+}
+
+/* LEFT PANEL: General Controls */
+#leftPanel {
+  flex: 1; /* 1 part of 1+2+1 = 1/4 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 20px;
+  box-sizing: border-box;
+  border-right: 1px solid #444;
+}
+
+/* CENTER PANEL: The Canvas */
+#centerPanel {
+  flex: 2; /* 2 parts of 1+2+1 = 1/2 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
+}
+
+/* RIGHT PANEL: Per‐Row Bias Sliders */
+#rightPanel {
+  flex: 1; /* 1 part of 1+2+1 = 1/4 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 20px;
+  box-sizing: border-box;
+  overflow-y: auto; /* scroll if many rows */
+  border-left: 1px solid #444;
+}
+
+/* -------------------------------------------
+   Canvas Styles
+------------------------------------------- */
+#galtonCanvas {
+  background: #000;
+  width: 100%;
+  height: 100%;
+  display: block; /* still block so it obeys width/height */
+}
+/* -------------------------------------------
+   Button & Range‐slider Styles
+------------------------------------------- */
+button {
+  margin: 5px;
+  padding: 6px 14px;
+  border: none;
+  background-color: #444;
+  color: #fff;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+label {
+  font-size: 14px;
+  margin: 6px 0 2px 0;
+}
+
+input[type="range"] {
+  width: 180px;
+  margin: 2px 0 10px 0;
+}
+
+/* Each bias‐slider container in the right panel */
+.biasRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 4px 0;
+  width: 90%;
+}
+
+.biasRow label {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.biasRow input[type="range"] {
+  width: 100%;
+}

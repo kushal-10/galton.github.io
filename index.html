@@ -1,13 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Galton Board</title>
-    </head>
-    <body>
-        <div id="app"></div>
-        <script type="module" src="/src/main.ts"></script>
-    </body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Galton Board</title>
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================
+       CONTAINER (3 COLUMNS: 1/4 | 1/2 | 1/4)
+  ============================================ -->
+  <div id="container">
+    <!-- LEFT PANEL -->
+    <div id="leftPanel">
+      <label for="rowSlider">Rows: <span id="rowCount">10</span></label>
+      <input
+        type="range"
+        id="rowSlider"
+        min="1"
+        max="15"
+        step="1"
+        value="10"
+      />
+
+      <label for="ballSlider">Balls: <span id="ballCount">500</span></label>
+      <input type="range" id="ballSlider" min="10" max="1000" step="10" value="500" />  
+
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <!-- CENTER PANEL -->
+    <div id="centerPanel">
+      <canvas id="galtonCanvas"></canvas>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="rightPanel">
+      <div id="biasControls"></div>
+    </div>
+  </div>
+
+  <!-- Link to external JavaScript (placed at bottom for faster parsing) -->
+  <script src="script.js"></script>
+</body>
 </html>

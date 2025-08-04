@@ -36,7 +36,7 @@ let animRequest        = null;
 let isRunning          = false;
 
 // Visual & physics constants
-const BEAD_RADIUS       = 4;
+const BEAD_RADIUS       = 3;
 const BEAD_SPEED        = 0.04;
 const DROP_RATE         = 30;
 
@@ -63,7 +63,7 @@ const FUNNEL_TUNNEL_WIDTH = 40;
 const MAX_BASKET_BEADS  = 50;
 
 // Hex peg constants
-const HEX_RADIUS        = 7;
+const HEX_RADIUS        = 14;
 
 // For funnel drawing
 let funnelTopY = 0, funnelLeftX = 0, funnelRightX = 0;
@@ -243,7 +243,7 @@ function computeLayout() {
   tunnelY = funnelBaseY;
   tunnelLeftX = W / 2 - FUNNEL_TUNNEL_WIDTH / 2;
   tunnelRightX = W / 2 + FUNNEL_TUNNEL_WIDTH / 2;
-  funnelTopY = MARGIN_TOP + 12;
+  funnelTopY = MARGIN_TOP + 42;
   funnelLeftX = W / 2 - FUNNEL_WIDTH / 2;
   funnelRightX = W / 2 + FUNNEL_WIDTH / 2;
 }
@@ -288,6 +288,7 @@ function drawBoard() {
   ctx.globalCompositeOperation = "source-over";
   ctx.restore();
 
+
   // ---- Funnel beads ----
   ctx.fillStyle = COLOR_BEAD;
   const funnelHeight = tunnelY - funnelTopY;
@@ -320,6 +321,36 @@ function drawBoard() {
     }
     if (beadsDrawn >= ballsLeft) break;
   }
+
+  // Draw left wall: from leftmost bin line up to funnel's left base corner
+ctx.strokeStyle = COLOR_DIVIDER;
+ctx.lineWidth = 4;
+
+// Left wall: from bottom to funnel
+ctx.beginPath();
+ctx.moveTo(binLeft, binTopY); // bottom left (start of leftmost bin line)
+if (numRows != 1) {
+  ctx.lineTo(tunnelLeftX, tunnelY); // up to funnel's left corner
+}
+else {
+  ctx.lineTo(tunnelRightX, tunnelY);
+}
+
+ctx.stroke();
+
+// Right wall: from bottom to funnel
+ctx.beginPath();
+ctx.moveTo(binLeft + (numRows + 1) * binWidth, binTopY); // bottom right (start of rightmost bin line)
+if (numRows != 1) {
+  ctx.lineTo(tunnelRightX, tunnelY);// up to funnel's left corner
+}
+else {
+  ctx.lineTo(tunnelLeftX, tunnelY); 
+}
+
+ctx.stroke();
+
+
 
   // ---- Board outline ----
   ctx.strokeStyle = COLOR_BORDER;
@@ -358,42 +389,44 @@ function drawBoard() {
 // --------------------------------------------
 
 function launchBead() {
-  // Always drop from center of tunnel
+  // Start: drop from center of funnel tunnel
   const startX = (tunnelLeftX + tunnelRightX) / 2;
-  const startY = tunnelY + BEAD_RADIUS; // at the base of the funnel, just below the opening
-
+  const startY = tunnelY + BEAD_RADIUS;
   const path = [];
-  // Animate bead falling vertically from the opening to the y-level of the first peg
-  const topPegYActual = nailPositions[0][0].y;
+  let idx = 0; // Peg index in the row
+
+  // Initial drop from funnel opening
   path.push({ x: startX, y: startY });
 
-  // For the first peg, determine left or right bounce
-  let idx = 0;
-  let r = 0;
-  let peg = nailPositions[r][idx];
-  let leftOrRight = Math.random() < biases[r] ? 1 : -1;
-  const angle = leftOrRight === 1 ? -Math.PI/6 : -5*Math.PI/6;
-  const cornerX = peg.x + HEX_RADIUS * Math.cos(angle);
-  const cornerY = peg.y + HEX_RADIUS * Math.sin(angle);
+  // Go through all peg rows
+  for (let r = 0; r < numRows; r++) {
+    let peg = nailPositions[r][idx];
 
-  // Go straight from the funnel to the selected corner of the top peg
-  path.push({ x: cornerX, y: cornerY });
-  idx = leftOrRight === 1 ? Math.min(idx+1, r+1) : Math.max(idx, 0);
+    // 1. Drop vertically to the top vertex of the peg
+    const topAngle = -Math.PI / 2;
+    const topX = peg.x + HEX_RADIUS * Math.cos(topAngle);
+    const topY = peg.y + HEX_RADIUS * Math.sin(topAngle);
+    path.push({ x: topX, y: topY });
 
-  // Now handle subsequent rows (starting from row 1)
-  for (r = 1; r < numRows; r++) {
-    peg = nailPositions[r][idx];
-    leftOrRight = Math.random() < biases[r] ? 1 : -1;
-    const ang = leftOrRight === 1 ? -Math.PI/6 : -5*Math.PI/6;
-    const cornerX2 = peg.x + HEX_RADIUS * Math.cos(ang);
-    const cornerY2 = peg.y + HEX_RADIUS * Math.sin(ang);
-    path.push({ x: cornerX2, y: cornerY2 });
-    idx = leftOrRight === 1 ? Math.min(idx+1, r+1) : Math.max(idx, 0);
+    // 2. Decide direction: left or right
+    let leftOrRight = Math.random() < biases[r] ? 1 : -1;
+
+    // 3. Move along the top-left or top-right edge
+    const edgeAngle = leftOrRight === 1 ? -Math.PI / 6 : -5 * Math.PI / 6;
+    const edgeX = peg.x + HEX_RADIUS * Math.cos(edgeAngle);
+    const edgeY = peg.y + HEX_RADIUS * Math.sin(edgeAngle);
+    path.push({ x: edgeX, y: edgeY });
+
+    // 4. Update peg index for next row
+    idx = leftOrRight === 1 ? Math.min(idx + 1, r + 1) : Math.max(idx, 0);
   }
+
+  // Last: move to the final bin center
   const final = idx;
   path.push({ x: binCenters[final], y: binTopY + BEAD_RADIUS });
   activeBeads.push({ path, segment: 0, t: 0, final });
 }
+
 
 
 function animate() {

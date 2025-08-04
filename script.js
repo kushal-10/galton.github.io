@@ -73,7 +73,7 @@ const FUNNEL_TUNNEL_WIDTH = 40;
 const MAX_BASKET_BEADS  = 50;
 
 // Hex peg constants
-const HEX_RADIUS        = 14;
+const HEX_RADIUS        = 12;
 
 // For funnel drawing
 let funnelTopY = 0, funnelLeftX = 0, funnelRightX = 0;
@@ -243,21 +243,21 @@ function stopSimulation() {
 // --------------------------------------------
 function computeLayout() {
   // ---- BINS ----
-  if (numRows == 1) pegOffset = 400, binOffset = 570;
-  else if (numRows == 2) pegOffset = 300, binOffset = 545 ;
-  else if (numRows == 3) pegOffset = 250, binOffset = 525;
-  else if (numRows == 4) pegOffset = 220, binOffset = 505;
-  else if (numRows == 5) pegOffset = 200, binOffset = 480;
-  else if (numRows == 6) pegOffset = 180, binOffset = 460;
-  else if (numRows == 7) pegOffset = 170, binOffset = 440;
-  else if (numRows == 8) pegOffset = 160, binOffset = 415;
-  else if (numRows == 9) pegOffset = 150, binOffset = 395;
-  else if (numRows == 10) pegOffset = 140, binOffset = 370;
-  else if (numRows == 11) pegOffset = 130, binOffset = 350;
-  else if (numRows == 12) pegOffset = 120, binOffset = 330;
-  else if (numRows == 13) pegOffset = 110, binOffset = 305;
-  else if (numRows == 14) pegOffset = 110, binOffset = 280;
-  else if (numRows == 15) pegOffset = 110, binOffset = 260;
+  if (numRows == 1) pegOffset = 400;
+  else if (numRows == 2) pegOffset = 300;
+  else if (numRows == 3) pegOffset = 250;
+  else if (numRows == 4) pegOffset = 220;
+  else if (numRows == 5) pegOffset = 200;
+  else if (numRows == 6) pegOffset = 180;
+  else if (numRows == 7) pegOffset = 170;
+  else if (numRows == 8) pegOffset = 160;
+  else if (numRows == 9) pegOffset = 150;
+  else if (numRows == 10) pegOffset = 140;
+  else if (numRows == 11) pegOffset = 130;
+  else if (numRows == 12) pegOffset = 120;
+  else if (numRows == 13) pegOffset = 110;
+  else if (numRows == 14) pegOffset = 110;
+  else if (numRows == 15) pegOffset = 110;
   else pegOffset = 10;
 
   const left = MARGIN_X + pegOffset;
@@ -272,7 +272,7 @@ function computeLayout() {
 
   // Bins always at the same place
   
-  binTopY = H - binOffset; // leave room for balls to pile up
+   // leave room for balls to pile up
 
   // ---- PEGS ----
   // Funnel opening (tunnel) always at fixed place
@@ -292,7 +292,10 @@ function computeLayout() {
     const row = [];
     for (let j = 0; j < count; j++) row.push({ x: x0 + j * binWidth, y });
     nailPositions.push(row);
+    binTopY = y;
   }
+
+  
 
   // ---- FUNNEL ----
   // Tunnel opening (horizontal base) always at fixed place

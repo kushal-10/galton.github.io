@@ -63,10 +63,11 @@ body {
    Canvas Styles
 ------------------------------------------- */
 #galtonCanvas {
-  background: #000; /* black behind board if any gap */
-  display: block;
+  background: #000;
+  width: 100%;
+  height: 100%;
+  display: block; /* still block so it obeys width/height */
 }
-
 /* -------------------------------------------
    Button & Range‐slider Styles
 ------------------------------------------- */

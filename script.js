@@ -14,6 +14,9 @@ const startBtn         = document.getElementById('startBtn');
 const stopBtn          = document.getElementById('stopBtn');
 const resetBtn         = document.getElementById('resetBtn');
 const biasControls     = document.getElementById('biasControls');
+const speedSlider = document.getElementById('speedSlider');
+const speedLabel = document.getElementById('speedLabel');
+
 
 // Simulation state
 let totalBalls         = parseInt(ballSlider.value, 10);
@@ -26,6 +29,10 @@ let binLeft            = 0;
 let binWidth           = 0;
 let binTopY            = 0;
 let binHeight          = 0;
+// Default speed multiplier mapped from slider: value 3 means 0.03 speed
+let beadSpeed = 0.03; 
+let dropRate = 120;    // default drop interval in milliseconds
+
 
 let activeBeads        = [];
 let settledBeads       = [];
@@ -34,6 +41,9 @@ let binCounts          = [];
 let dropInterval       = null;
 let animRequest        = null;
 let isRunning          = false;
+
+let funnelRows = [];
+
 
 // Visual & physics constants
 const BEAD_RADIUS       = 3;
@@ -78,9 +88,30 @@ window.addEventListener('load', () => {
   window.addEventListener('resize', resizeCanvas);
 });
 
+function setupFunnelRows() {
+  funnelRows = [];
+  let remaining = ballsLeft;
+  const cols = Math.floor(FUNNEL_WIDTH / (2 * BEAD_RADIUS));
+  const totalRows = Math.ceil(remaining / cols);
+  for (let r = 0; r < totalRows; r++) {
+    let nInRow = (r < totalRows - 1) ? cols : remaining;
+    funnelRows.push(new Array(nInRow).fill(true));
+    remaining -= nInRow;
+  }
+}
+
+function updateSpeedFromSlider() {
+  const val = parseInt(speedSlider.value, 10);
+  speedLabel.textContent = val;
+
+  beadSpeed = 0.01 + (val - 1) * (0.2 - 0.01) / (10 - 1);
+  dropRate = 400 - (val - 1) * (400 - 40) / (10 - 1);
+}
+
 function setupControls() {
   rowCountLbl.textContent = numRows;
   ballCountLabel.textContent = totalBalls;
+  speedLabel.textContent = speedSlider.value;
 
   rowSlider.addEventListener('input', () => {
     numRows = parseInt(rowSlider.value, 10);
@@ -96,6 +127,25 @@ function setupControls() {
     resetSimulation();
   });
 
+  speedSlider.addEventListener('input', () => {
+    updateSpeedFromSlider();
+
+    if (isRunning) {
+      clearInterval(dropInterval);
+      dropInterval = setInterval(() => {
+        if (ballsLeft > 0) {
+          launchBead();
+          ballsLeft--;
+        } else {
+          clearInterval(dropInterval);
+        }
+      }, dropRate);
+    }
+  });
+
+  updateSpeedFromSlider();
+
+
   startBtn.addEventListener('click', () => {
     if (!isRunning) startSimulation();
   });
@@ -110,6 +160,7 @@ function setupControls() {
 
   initBiases();
 }
+
 
 function initBiases() {
   biases = Array(numRows).fill(0.5);
@@ -151,6 +202,7 @@ function resetSimulation() {
   settledBeads = [];
   binCounts = Array(numRows+1).fill(0);
   computeLayout();
+  setupFunnelRows();  // <--- this line
   drawBoard();
   isRunning = false;
   startBtn.disabled = false;
@@ -159,10 +211,12 @@ function resetSimulation() {
   if (animRequest) cancelAnimationFrame(animRequest);
 }
 
+
 function startSimulation() {
   isRunning = true;
   startBtn.disabled = true;
   stopBtn.disabled = false;
+
   dropInterval = setInterval(() => {
     if (ballsLeft > 0) {
       launchBead();
@@ -170,9 +224,11 @@ function startSimulation() {
     } else {
       clearInterval(dropInterval);
     }
-  }, DROP_RATE);
+  }, dropRate);
+
   animate();
 }
+
 
 function stopSimulation() {
   isRunning = false;
@@ -289,38 +345,29 @@ function drawBoard() {
   ctx.restore();
 
 
-  // ---- Funnel beads ----
-  ctx.fillStyle = COLOR_BEAD;
-  const funnelHeight = tunnelY - funnelTopY;
-  const bottomWidth = tunnelRightX - tunnelLeftX;
-  const cols = Math.floor(FUNNEL_WIDTH / (2 * BEAD_RADIUS));
-  const totalRows = Math.ceil(ballsLeft / cols);
-  let beadsDrawn = 0;
-  for (let r = 0; r < totalRows; r++) {
-    for (let c = 0; c < cols; c++) {
-      let beadIdx = r * cols + c;
-      if (beadIdx >= ballsLeft) continue;
-      let y, x;
-      if (r === totalRows - 1) {
-        // Last row: beads distributed along tunnel opening
-        y = tunnelY;
-        const nLast = ballsLeft - r * cols;
-        x = tunnelLeftX + ((c + 0.5) * (bottomWidth / nLast));
-      } else {
-        y = funnelTopY + (r + 0.5) * (funnelHeight / totalRows);
-        const t = (y - funnelTopY) / funnelHeight;
-        const widthAtY = FUNNEL_WIDTH + t * (bottomWidth - FUNNEL_WIDTH);
-        const xLeft = W / 2 - widthAtY / 2;
-        x = xLeft + (c + 0.5) * (widthAtY / cols);
-      }
-      ctx.beginPath();
-      ctx.arc(x, y, BEAD_RADIUS, 0, Math.PI * 2);
-      ctx.fill();
-      beadsDrawn++;
-      if (beadsDrawn >= ballsLeft) break;
+ // ---- Funnel beads ----
+ctx.fillStyle = COLOR_BEAD;
+const funnelHeight = tunnelY - funnelTopY;
+const bottomWidth = tunnelRightX - tunnelLeftX;
+const nRows = funnelRows.length;
+for (let r = 0; r < nRows; r++) {
+    const nInRow = funnelRows[r].length;
+    const y = funnelTopY + (r + 0.5) * (funnelHeight / nRows);
+    const t = (y - funnelTopY) / funnelHeight;
+    const widthAtY = FUNNEL_WIDTH + t * (bottomWidth - FUNNEL_WIDTH);
+    const xLeft = W / 2 - widthAtY / 2;
+    for (let c = 0; c < nInRow; c++) {
+        if (funnelRows[r][c]) {
+            const x = xLeft + (nInRow === 1
+                ? widthAtY/2
+                : (c + 0.5) * (widthAtY / nInRow)
+            );
+            ctx.beginPath();
+            ctx.arc(x, y, BEAD_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
-    if (beadsDrawn >= ballsLeft) break;
-  }
+}
 
   // Draw left wall: from leftmost bin line up to funnel's left base corner
 ctx.strokeStyle = COLOR_DIVIDER;
@@ -389,39 +436,39 @@ ctx.stroke();
 // --------------------------------------------
 
 function launchBead() {
-  // Start: drop from center of funnel tunnel
+  // Remove bead from funnelRows: topmost non-empty row, rightmost bead
+  outer: for (let r = 0; r < funnelRows.length; r++) {
+    for (let c = funnelRows[r].length - 1; c >= 0; c--) {
+      if (funnelRows[r][c]) {
+        funnelRows[r][c] = false;
+        break outer;
+      }
+    }
+  }
+
+  // Always start bead at the exit of the funnel (center bottom of tunnel)
   const startX = (tunnelLeftX + tunnelRightX) / 2;
   const startY = tunnelY + BEAD_RADIUS;
+
+  // Now proceed with the rest of the path as before
   const path = [];
-  let idx = 0; // Peg index in the row
-
-  // Initial drop from funnel opening
+  let idx = 0;
   path.push({ x: startX, y: startY });
-
-  // Go through all peg rows
   for (let r = 0; r < numRows; r++) {
     let peg = nailPositions[r][idx];
-
-    // 1. Drop vertically to the top vertex of the peg
     const topAngle = -Math.PI / 2;
     const topX = peg.x + HEX_RADIUS * Math.cos(topAngle);
     const topY = peg.y + HEX_RADIUS * Math.sin(topAngle);
     path.push({ x: topX, y: topY });
 
-    // 2. Decide direction: left or right
     let leftOrRight = Math.random() < biases[r] ? 1 : -1;
-
-    // 3. Move along the top-left or top-right edge
     const edgeAngle = leftOrRight === 1 ? -Math.PI / 6 : -5 * Math.PI / 6;
     const edgeX = peg.x + HEX_RADIUS * Math.cos(edgeAngle);
     const edgeY = peg.y + HEX_RADIUS * Math.sin(edgeAngle);
     path.push({ x: edgeX, y: edgeY });
 
-    // 4. Update peg index for next row
     idx = leftOrRight === 1 ? Math.min(idx + 1, r + 1) : Math.max(idx, 0);
   }
-
-  // Last: move to the final bin center
   const final = idx;
   path.push({ x: binCenters[final], y: binTopY + BEAD_RADIUS });
   activeBeads.push({ path, segment: 0, t: 0, final });
@@ -430,22 +477,25 @@ function launchBead() {
 
 
 function animate() {
-  for (let i = activeBeads.length-1; i>=0; i--) {
+  for (let i = activeBeads.length - 1; i >= 0; i--) {
     const b = activeBeads[i];
     const { path, segment, t } = b;
-    if (segment >= path.length-1) {
+
+    if (segment >= path.length - 1) {
       const bin = b.final;
       const count = binCounts[bin]++;
-      const cols = Math.floor(binWidth/(2*BEAD_RADIUS));
+      const cols = Math.floor(binWidth / (2 * BEAD_RADIUS));
       const col = count % cols;
-      const row = Math.floor(count/cols);
-      const x = binLeft + bin*binWidth + col*2*BEAD_RADIUS + BEAD_RADIUS;
-      const y = H - row*2*BEAD_RADIUS - BEAD_RADIUS;
+      const row = Math.floor(count / cols);
+      const x = binLeft + bin * binWidth + col * 2 * BEAD_RADIUS + BEAD_RADIUS;
+      const y = H - row * 2 * BEAD_RADIUS - BEAD_RADIUS;
       settledBeads.push({ x, y });
-      activeBeads.splice(i,1);
+      activeBeads.splice(i, 1);
       continue;
     }
-    b.t += BEAD_SPEED;
+
+    b.t += beadSpeed;  // <-- Use variable speed here
+
     if (b.t >= 1) {
       b.segment++;
       b.t = 0;
@@ -453,9 +503,9 @@ function animate() {
       b.currentY = path[b.segment].y;
     } else {
       const p0 = path[b.segment];
-      const p1 = path[b.segment+1];
-      b.currentX = p0.x + (p1.x-p0.x)*b.t;
-      b.currentY = p0.y + (p1.y-p0.y)*b.t;
+      const p1 = path[b.segment + 1];
+      b.currentX = p0.x + (p1.x - p0.x) * b.t;
+      b.currentY = p0.y + (p1.y - p0.y) * b.t;
     }
   }
   drawBoard();

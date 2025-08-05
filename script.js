@@ -111,7 +111,7 @@ function initHistogram() {
       datasets: [{
         label: 'Beads per bin',
         data: [],
-        backgroundColor: '#0f0'
+        backgroundColor: '#0275FF'
       }]
     },
     options: {

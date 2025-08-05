@@ -263,22 +263,34 @@ function updateTable() {
 }
 
 
-// 6) Hook resetStats() into resetSimulation():
 function resetSimulation() {
-  ballsLeft      = totalBalls;
-  settledBeads   = [];
-  // remove any pending drops/animations
-  if (dropInterval) clearInterval(dropInterval);
-  if (animRequest) cancelAnimationFrame(animRequest);
+  // 1) Reset counters
+  ballsLeft    = totalBalls;
+  binCounts    = Array(numRows + 1).fill(0);
+
+  // 2) Clear all bead arrays
+  activeBeads   = [];   // ← remove any beads still falling
+  settledBeads  = [];
+
+  // 3) Stop any in-flight timers/animations
+  if (dropInterval)   clearInterval(dropInterval);
+  if (animRequest)    cancelAnimationFrame(animRequest);
+
   isRunning      = false;
   startBtn.disabled = false;
   stopBtn.disabled  = true;
 
+  // 4) Recompute layout & funnel
   computeLayout();
   setupFunnelRows();
-  resetStats();    // ← NEW: reset chart & table
+
+  // 5) Reset your histogram/table
+  resetStats();
+
+  // 6) Redraw an empty board
   drawBoard();
 }
+
 
 
 

@@ -6,75 +6,172 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #000; /* black behind everything */
+  background: #000;
   color: #fff;
   font-family: sans-serif;
-  overflow: hidden; /* no scrollbars on body */
+  overflow: hidden;
 }
 
 /* -------------------------------------------
-   Three‐column Flex Layout: Left | Center | Right
-   Now: left=1/4, center=1/2, right=1/4
+   Three-column Flex Layout
 ------------------------------------------- */
 #container {
   display: flex;
-  height: 100vh; /* full viewport height */
+  height: 100vh;
   box-sizing: border-box;
-}
-
-/* LEFT PANEL: General Controls */
-#leftPanel {
-  flex: 1; /* 1 part of 1+2+1 = 1/4 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 20px;
-  box-sizing: border-box;
-  border-right: 1px solid #444;
-}
-
-/* CENTER PANEL: The Canvas */
-#centerPanel {
-  flex: 2; /* 2 parts of 1+2+1 = 1/2 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  box-sizing: border-box;
-  border-left: 1px solid #444;
-  border-right: 1px solid #444;
-}
-
-/* RIGHT PANEL: Per‐Row Bias Sliders */
-#rightPanel {
-  flex: 1; /* 1 part of 1+2+1 = 1/4 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 20px;
-  box-sizing: border-box;
-  overflow-y: auto; /* scroll if many rows */
-  border-left: 1px solid #444;
-}
-
-#randomizeBtn {
-  margin-top: 12px;
-  width: 50%;
 }
 
 /* -------------------------------------------
-   Canvas Styles
+   LEFT PANEL
 ------------------------------------------- */
+#leftPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  padding-top: 20px;
+  border-right: 1px solid #444;
+  box-sizing: border-box;
+}
+
+/* Section wrapper with heading */
+.panelSection {
+  width: 90%;
+  max-width: 220px;
+  margin: 20px auto;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #444;
+}
+.panelSection:last-of-type {
+  border-bottom: none;
+}
+.panelSection h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #ccc;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Generic control row: label + slider */
+.controlRow {
+  width: 100%;
+  margin: 12px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.controlRow label {
+  margin-bottom: 6px;
+  text-align: center;
+  font-size: 14px;
+}
+.controlRow input[type="range"] {
+  width: 100%;
+  max-width: 180px;
+  box-sizing: border-box;
+}
+
+/* Horizontal button row */
+.buttonRow {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px auto;
+}
+
+/* Bias Controls specifics */
+#biasSection #biasControls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.biasRow {
+  width: 100%;
+  max-width: 180px;
+  margin: 6px 0;
+}
+.biasRow label {
+  text-align: center;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.biasRow input[type="range"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+#biasSection #randomizeBtn {
+  display: block;
+  width: 100%;
+  max-width: 180px;     /* match your slider max width */
+  margin: 12px auto;    /* vertical spacing + auto‐center */
+  padding: 6px 14px;
+  box-sizing: border-box;
+}
+/* -------------------------------------------
+   CENTER PANEL (Canvas)
+------------------------------------------- */
+#centerPanel {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
+  box-sizing: border-box;
+}
 #galtonCanvas {
   background: #000;
   width: 100%;
   height: 100%;
-  display: block; /* still block so it obeys width/height */
+  display: block;
 }
+
 /* -------------------------------------------
-   Button & Range‐slider Styles
+   RIGHT PANEL (Stats)
+------------------------------------------- */
+#rightPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 10px;
+  overflow-y: auto;
+  border-left: 1px solid #444;
+  box-sizing: border-box;
+}
+#statsContainer {
+  width: 100%;
+  text-align: center;
+  flex: 1;
+}
+#histCanvas {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  margin-bottom: 10px;
+}
+#binTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+#binTable th,
+#binTable td {
+  border: 1px solid #444;
+  padding: 4px;
+}
+#binTable th {
+  background: #333;
+}
+
+/* -------------------------------------------
+   Buttons & Sliders (global)
 ------------------------------------------- */
 button {
   margin: 5px;
@@ -86,36 +183,14 @@ button {
   border-radius: 4px;
   cursor: pointer;
 }
-
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-
 label {
   font-size: 14px;
-  margin: 6px 0 2px 0;
+  margin: 6px 0 2px;
 }
-
 input[type="range"] {
-  width: 180px;
-  margin: 2px 0 10px 0;
-}
-
-/* Each bias‐slider container in the right panel */
-.biasRow {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 4px 0;
-  width: 90%;
-}
-
-.biasRow label {
-  font-size: 13px;
-  margin-bottom: 2px;
-}
-
-.biasRow input[type="range"] {
-  width: 100%;
+  margin: 2px 0 10px;
 }

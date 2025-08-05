@@ -33,6 +33,7 @@ let binHeight          = 0;
 let beadSpeed = 0.03; 
 let dropRate = 120;    // default drop interval in milliseconds
 
+let histChart;
 
 let activeBeads        = [];
 let settledBeads       = [];
@@ -84,6 +85,7 @@ let tunnelY = 0, tunnelLeftX = 0, tunnelRightX = 0;
 // --------------------------------------------
 window.addEventListener('load', () => {
   setupControls();
+  initHistogram();
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 });
@@ -99,6 +101,32 @@ function setupFunnelRows() {
     remaining -= nInRow;
   }
 }
+
+function initHistogram() {
+  const ctxH = document.getElementById('histCanvas').getContext('2d');
+  histChart = new Chart(ctxH, {
+    type: 'bar',
+    data: {
+      labels: [],          // will be set in resetStats()
+      datasets: [{
+        label: 'Beads per bin',
+        data: [],
+        backgroundColor: '#0f0'
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { beginAtZero: true },
+        y: { beginAtZero: true }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+}
+
 
 function updateSpeedFromSlider() {
   const val = parseInt(speedSlider.value, 10);
@@ -213,19 +241,45 @@ function resizeCanvas() {
   resetSimulation();
 }
 
+function resetStats() {
+  // 1) reset counts
+  binCounts = Array(numRows + 1).fill(0);
+  // 2) rebuild chart labels & data
+  histChart.data.labels = binCounts.map((_, i) => `Bin ${i}`);
+  histChart.data.datasets[0].data = [...binCounts];
+  histChart.update();
+  // 3) rebuild HTML table
+  updateTable();
+}
+
+function updateTable() {
+  const tbody = document.querySelector('#binTable tbody');
+  tbody.innerHTML = '';
+  binCounts.forEach((count, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td><td>${count}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+
+// 6) Hook resetStats() into resetSimulation():
 function resetSimulation() {
-  ballsLeft = totalBalls;
-  settledBeads = [];
-  binCounts = Array(numRows+1).fill(0);
-  computeLayout();
-  setupFunnelRows();  // <--- this line
-  drawBoard();
-  isRunning = false;
-  startBtn.disabled = false;
-  stopBtn.disabled = true;
+  ballsLeft      = totalBalls;
+  settledBeads   = [];
+  // remove any pending drops/animations
   if (dropInterval) clearInterval(dropInterval);
   if (animRequest) cancelAnimationFrame(animRequest);
+  isRunning      = false;
+  startBtn.disabled = false;
+  stopBtn.disabled  = true;
+
+  computeLayout();
+  setupFunnelRows();
+  resetStats();    // ← NEW: reset chart & table
+  drawBoard();
 }
+
 
 
 function startSimulation() {
@@ -522,21 +576,28 @@ function animate() {
     const b = activeBeads[i];
     const { path, segment, t } = b;
 
+    // If bead has reached the end of its path, settle it into a bin
     if (segment >= path.length - 1) {
       const bin = b.final;
-      const count = binCounts[bin]++;
-      const minCols = 5; // Try 5 to start, adjust for visuals
+      // 1) increment the count for that bin
+      binCounts[bin]++;
+      // 2) live‐update histogram & table
+      histChart.data.datasets[0].data[bin] = binCounts[bin];
+      histChart.update();
+      updateTable();
 
+      // 3) compute the “index” of this bead in its bin (0-based)
+      const countIndex = binCounts[bin] - 1;
+      const minCols = 5;
       const cols = Math.max(
-        minCols, 
-        Math.floor((numRows === 1 ? Math.abs(binWidth) : binWidth) / (2 * BEAD_RADIUS))
+        minCols,
+        Math.floor(binWidth / (2 * BEAD_RADIUS))
       );
-      
-      const row = Math.floor(count / cols);
-      const posInRow = count % cols;
-    
-      // Center-out filling
-      let center = Math.floor(cols / 2);
+      const row = Math.floor(countIndex / cols);
+      const posInRow = countIndex % cols;
+
+      // center-out ordering
+      const center = Math.floor(cols / 2);
       let col;
       if (posInRow === 0) {
         col = center;
@@ -545,24 +606,21 @@ function animate() {
       } else {
         col = center - Math.ceil(posInRow / 2);
       }
-    
-      // Calculate grid start so it's centered in bin
+
+      // position within the bin
       const gridWidth = cols * 2 * BEAD_RADIUS;
       const binCenterX = binLeft + bin * binWidth + binWidth / 2;
       const gridLeft = binCenterX - gridWidth / 2;
-    
-      let x = gridLeft + col * 2 * BEAD_RADIUS - BEAD_RADIUS;
+      const x = gridLeft + col * 2 * BEAD_RADIUS - BEAD_RADIUS;
       const y = H - row * 2 * BEAD_RADIUS - BEAD_RADIUS;
-    
-      console.log(`Bead in bin ${bin} at (col,row)=(${col},${row}) x=${x}, y=${y}, with total cols ${cols} and binwidth ${binWidth}`);
-    
+
       settledBeads.push({ x, y });
       activeBeads.splice(i, 1);
       continue;
     }
 
-    b.t += beadSpeed;  // <-- Use variable speed here
-
+    // Otherwise, advance this bead along its current segment
+    b.t += beadSpeed;
     if (b.t >= 1) {
       b.segment++;
       b.t = 0;
@@ -575,6 +633,12 @@ function animate() {
       b.currentY = p0.y + (p1.y - p0.y) * b.t;
     }
   }
+
+  // redraw everything
   drawBoard();
-  if (isRunning || activeBeads.length) animRequest = requestAnimationFrame(animate);
+
+  // schedule next frame if we're still running or beads are still moving
+  if (isRunning || activeBeads.length > 0) {
+    animRequest = requestAnimationFrame(animate);
+  }
 }

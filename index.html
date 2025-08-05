@@ -3,36 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <title>Galton Board</title>
-  <!-- Link to external CSS -->
   <link rel="stylesheet" href="styles.css" />
+  <!-- Chart.js for the histogram -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- ============================================
-       CONTAINER (3 COLUMNS: 1/4 | 1/2 | 1/4)
-  ============================================ -->
   <div id="container">
     <!-- LEFT PANEL -->
     <div id="leftPanel">
-      <label for="rowSlider">Rows: <span id="rowCount">10</span></label>
-      <input
-        type="range"
-        id="rowSlider"
-        min="1"
-        max="15"
-        step="1"
-        value="10"
-      />
 
-      <label for="ballSlider">Balls: <span id="ballCount">500</span></label>
-      <input type="range" id="ballSlider" min="10" max="1000" step="10" value="500" />  
+      <!-- ─── Section: Initial Setup ─── -->
+      <div class="panelSection" id="initSection">
+        <h2>Initial Setup</h2>
 
-      <button id="startBtn">Start</button>
-      <button id="stopBtn" disabled>Stop</button>
-      <button id="resetBtn">Reset</button>
+        <div class="controlRow">
+          <label for="rowSlider">Rows: <span id="rowCount">10</span></label>
+          <input
+            type="range"
+            id="rowSlider"
+            min="1"
+            max="15"
+            step="1"
+            value="10"
+          />
+        </div>
 
-      <label for="speedSlider">Speed: <span id="speedLabel">3</span></label>
-      <input type="range" id="speedSlider" min="1" max="10" step="1" value="5" />
+        <div class="controlRow">
+          <label for="ballSlider">Balls: <span id="ballCount">500</span></label>
+          <input
+            type="range"
+            id="ballSlider"
+            min="10"
+            max="1000"
+            step="10"
+            value="500"
+          />
+        </div>
+
+        <div class="buttonRow">
+          <button id="startBtn">Start</button>
+          <button id="stopBtn" disabled>Stop</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="controlRow">
+          <label for="speedSlider">Speed: <span id="speedLabel">5</span></label>
+          <input
+            type="range"
+            id="speedSlider"
+            min="1"
+            max="10"
+            step="1"
+            value="5"
+          />
+        </div>
+      </div>
+
+      <!-- ─── Section: Bias Controls ─── -->
+      <div class="panelSection" id="biasSection">
+        <h2>Bias Controls</h2>
+        <div id="biasControls"></div>
+        <button id="randomizeBtn">Randomize Biases</button>
+      </div>
 
     </div>
 
@@ -43,12 +76,18 @@
 
     <!-- RIGHT PANEL -->
     <div id="rightPanel">
-      <div id="biasControls"></div>
-      <button id="randomizeBtn">Randomize Biases</button>
+      <div id="statsContainer">
+        <canvas id="histCanvas" width="200" height="120"></canvas>
+        <table id="binTable">
+          <thead>
+            <tr><th>Bin</th><th>Count</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Link to external JavaScript (placed at bottom for faster parsing) -->
   <script src="script.js"></script>
 </body>
 </html>

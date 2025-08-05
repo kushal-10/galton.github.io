@@ -268,7 +268,7 @@ function computeLayout() {
   binLeft = left;
   binCenters = [];
   for (let i = 0; i < binCount; i++)
-    binCenters.push(binLeft + (i + 0.5) * binWidth);
+    binCenters.push(binLeft + (i ) * binWidth);
 
   // Bins always at the same place
   
@@ -439,7 +439,7 @@ ctx.stroke();
 // --------------------------------------------
 
 function launchBead() {
-  // Remove bead from funnelRows: topmost non-empty row, rightmost bead
+  // Remove bead from funnelRows (as before)
   outer: for (let r = 0; r < funnelRows.length; r++) {
     for (let c = funnelRows[r].length - 1; c >= 0; c--) {
       if (funnelRows[r][c]) {
@@ -449,16 +449,39 @@ function launchBead() {
     }
   }
 
-  // Always start bead at the exit of the funnel (center bottom of tunnel)
   const startX = (tunnelLeftX + tunnelRightX) / 2;
   const startY = tunnelY + BEAD_RADIUS;
+  const path = [{ x: startX, y: startY }];
 
-  // Now proceed with the rest of the path as before
-  const path = [];
+  if (numRows === 1) {
+    const peg = nailPositions[0][0];
+    // Hit top of the peg
+    const topX = peg.x;
+    const topY = peg.y - HEX_RADIUS;
+    path.push({ x: topX, y: topY });
+  
+    // Decide left or right
+    const leftOrRight = Math.random() < biases[0] ? 1 : -1;
+    // Move to the left or right edge of the hex
+    const edgeAngle = leftOrRight === 1 ? -Math.PI / 6 : -5 * Math.PI / 6;
+    const edgeX = peg.x + HEX_RADIUS * Math.cos(edgeAngle);
+    const edgeY = peg.y + HEX_RADIUS * Math.sin(edgeAngle);
+    path.push({ x: edgeX, y: edgeY });
+  
+    // Now fall vertically down from the edge to the bin center
+    const binIdx = leftOrRight === 1 ? 1 : 0;
+    const binY = binTopY + BEAD_RADIUS;
+    path.push({ x: edgeX, y: binY }); // fall vertically
+    // path.push({ x: binCenters[binIdx], y: binY }); // slide horizontally to center of bin (optional for realism)
+  
+    activeBeads.push({ path, segment: 0, t: 0, final: binIdx });
+    return;
+  }
+  
+  // Original logic for numRows >= 2
   let idx = 0;
-  path.push({ x: startX, y: startY });
   for (let r = 0; r < numRows; r++) {
-    let peg = nailPositions[r][idx];
+    const peg = nailPositions[r][idx];
     const topAngle = -Math.PI / 2;
     const topX = peg.x + HEX_RADIUS * Math.cos(topAngle);
     const topY = peg.y + HEX_RADIUS * Math.sin(topAngle);
@@ -478,7 +501,6 @@ function launchBead() {
 }
 
 
-
 function animate() {
   for (let i = activeBeads.length - 1; i >= 0; i--) {
     const b = activeBeads[i];
@@ -487,15 +509,46 @@ function animate() {
     if (segment >= path.length - 1) {
       const bin = b.final;
       const count = binCounts[bin]++;
-      const cols = Math.floor(binWidth / (2 * BEAD_RADIUS));
-      const col = count % cols;
+      const minCols = 5; // Try 5 to start, adjust for visuals
+
+      const cols = Math.max(
+        minCols, 
+        Math.floor((numRows === 1 ? Math.abs(binWidth) : binWidth) / (2 * BEAD_RADIUS))
+      );
+      
       const row = Math.floor(count / cols);
-      const x = binLeft + bin * binWidth + col * 2 * BEAD_RADIUS + BEAD_RADIUS;
+      const posInRow = count % cols;
+    
+      // Center-out filling
+      let center = Math.floor(cols / 2);
+      let col;
+      if (posInRow === 0) {
+        col = center;
+      } else if (posInRow % 2 === 1) {
+        col = center + Math.ceil(posInRow / 2);
+      } else {
+        col = center - Math.ceil(posInRow / 2);
+      }
+    
+      // Calculate grid start so it's centered in bin
+      const gridWidth = cols * 2 * BEAD_RADIUS;
+      const binCenterX = binLeft + bin * binWidth + binWidth / 2;
+      const gridLeft = binCenterX - gridWidth / 2;
+    
+      let x = gridLeft + col * 2 * BEAD_RADIUS - BEAD_RADIUS;
       const y = H - row * 2 * BEAD_RADIUS - BEAD_RADIUS;
+    
+      console.log(`Bead in bin ${bin} at (col,row)=(${col},${row}) x=${x}, y=${y}, with total cols ${cols} and binwidth ${binWidth}`);
+    
       settledBeads.push({ x, y });
       activeBeads.splice(i, 1);
       continue;
     }
+    
+    
+    
+    
+    
 
     b.t += beadSpeed;  // <-- Use variable speed here
 

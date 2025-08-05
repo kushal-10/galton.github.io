@@ -521,7 +521,7 @@ ctx.stroke();
 // --------------------------------------------
 
 function launchBead() {
-  // Remove bead from funnelRows (as before)
+  // Remove bead from funnelRows
   outer: for (let r = 0; r < funnelRows.length; r++) {
     for (let c = funnelRows[r].length - 1; c >= 0; c--) {
       if (funnelRows[r][c]) {
@@ -536,51 +536,51 @@ function launchBead() {
   const path = [{ x: startX, y: startY }];
 
   if (numRows === 1) {
+    // single‐peg case
     const peg = nailPositions[0][0];
-    // Hit top of the peg
-    const topX = peg.x;
-    const topY = peg.y - HEX_RADIUS;
-    path.push({ x: topX, y: topY });
-  
-    // Decide left or right
-    const leftOrRight = Math.random() < biases[0] ? 1 : -1;
-    // Move to the left or right edge of the hex
-    const edgeAngle = leftOrRight === 1 ? -Math.PI / 6 : -5 * Math.PI / 6;
+    path.push({ x: peg.x, y: peg.y - HEX_RADIUS });
+    const goRight = Math.random() < biases[0];
+    const edgeAngle = goRight ? -Math.PI/6 : -5*Math.PI/6;
     const edgeX = peg.x + HEX_RADIUS * Math.cos(edgeAngle);
     const edgeY = peg.y + HEX_RADIUS * Math.sin(edgeAngle);
     path.push({ x: edgeX, y: edgeY });
-  
-    // Now fall vertically down from the edge to the bin center
-    const binIdx = leftOrRight === 1 ? 1 : 0;
-    const binY = binTopY + BEAD_RADIUS;
-    path.push({ x: edgeX, y: binY }); // fall vertically
-    // path.push({ x: binCenters[binIdx], y: binY }); // slide horizontally to center of bin (optional for realism)
-  
-    activeBeads.push({ path, segment: 0, t: 0, final: binIdx });
+
+    // only vertical drop, no horizontal slide
+    const dropY = binTopY + BEAD_RADIUS;
+    path.push({ x: edgeX, y: dropY });
+
+    // final bin index
+    const finalBin = goRight ? 1 : 0;
+    activeBeads.push({ path, segment: 0, t: 0, final: finalBin });
     return;
   }
-  
-  // Original logic for numRows >= 2
+
+  // multi‐row case
   let idx = 0;
   for (let r = 0; r < numRows; r++) {
     const peg = nailPositions[r][idx];
-    const topAngle = -Math.PI / 2;
-    const topX = peg.x + HEX_RADIUS * Math.cos(topAngle);
-    const topY = peg.y + HEX_RADIUS * Math.sin(topAngle);
-    path.push({ x: topX, y: topY });
-
-    let leftOrRight = Math.random() < biases[r] ? 1 : -1;
-    const edgeAngle = leftOrRight === 1 ? -Math.PI / 6 : -5 * Math.PI / 6;
+    // hit top of hex
+    path.push({ x: peg.x, y: peg.y - HEX_RADIUS });
+    // decide left/right
+    const goRight = Math.random() < biases[r];
+    const edgeAngle = goRight ? -Math.PI/6 : -5*Math.PI/6;
     const edgeX = peg.x + HEX_RADIUS * Math.cos(edgeAngle);
     const edgeY = peg.y + HEX_RADIUS * Math.sin(edgeAngle);
     path.push({ x: edgeX, y: edgeY });
-
-    idx = leftOrRight === 1 ? Math.min(idx + 1, r + 1) : Math.max(idx, 0);
+    // update index
+    idx = goRight ? Math.min(idx + 1, r + 1) : idx;
   }
-  const final = idx;
-  path.push({ x: binCenters[final], y: binTopY + BEAD_RADIUS });
-  activeBeads.push({ path, segment: 0, t: 0, final });
+
+  // vertical drop only
+  const last = path[path.length - 1];
+  const dropY = binTopY + BEAD_RADIUS;
+  path.push({ x: last.x, y: dropY });
+
+  // final bin index
+  activeBeads.push({ path, segment: 0, t: 0, final: idx });
 }
+
+
 
 
 function animate() {

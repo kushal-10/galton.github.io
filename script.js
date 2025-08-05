@@ -159,6 +159,22 @@ function setupControls() {
   });
 
   initBiases();
+
+  // ——— NEW: randomize button ———
+  const randomizeBtn = document.getElementById('randomizeBtn');
+  randomizeBtn.addEventListener('click', () => {
+    // 1) generate new random biases
+    biases = biases.map(() => Math.random());
+
+    // 2) update each slider & its label
+    const sliders = biasControls.querySelectorAll('input[type="range"]');
+    const labels  = biasControls.querySelectorAll('label');
+    
+    sliders.forEach((slider, i) => {
+      slider.value = biases[i].toFixed(2);
+      labels[i].textContent = `Row ${i+1} bias: ${biases[i].toFixed(2)}`;
+    });
+  });
 }
 
 
@@ -544,11 +560,6 @@ function animate() {
       activeBeads.splice(i, 1);
       continue;
     }
-    
-    
-    
-    
-    
 
     b.t += beadSpeed;  // <-- Use variable speed here
 

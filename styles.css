@@ -59,6 +59,11 @@ body {
   border-left: 1px solid #444;
 }
 
+#randomizeBtn {
+  margin-top: 12px;
+  width: 50%;
+}
+
 /* -------------------------------------------
    Canvas Styles
 ------------------------------------------- */

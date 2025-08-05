@@ -590,7 +590,7 @@ function animate() {
 
     // If bead has reached the end of its path, settle it into a bin
     if (segment >= path.length - 1) {
-      const bin = b.final;
+      let bin = b.final;
       // 1) increment the count for that bin
       binCounts[bin]++;
       // 2) live‐update histogram & table
@@ -599,12 +599,24 @@ function animate() {
       updateTable();
 
       // 3) compute the “index” of this bead in its bin (0-based)
+      let cols;
       const countIndex = binCounts[bin] - 1;
       const minCols = 5;
-      const cols = Math.max(
-        minCols,
-        Math.floor(binWidth / (2 * BEAD_RADIUS))
-      );
+      if (numRows==1){
+        cols = Math.max(
+          minCols,
+          Math.floor(Math.abs(binWidth) / (2 * BEAD_RADIUS))
+        );
+      }
+      else {
+        cols = Math.max(
+          minCols,
+          Math.floor(binWidth / (2 * BEAD_RADIUS))
+        );
+      }
+      
+      console.log('Num cols: ', cols);
+      console.log('bin width: ', binWidth);
       const row = Math.floor(countIndex / cols);
       const posInRow = countIndex % cols;
 
@@ -621,7 +633,16 @@ function animate() {
 
       // position within the bin
       const gridWidth = cols * 2 * BEAD_RADIUS;
+
+      if(numRows == 1){
+        bin = Math.abs(bin-1);
+      }
+
       const binCenterX = binLeft + bin * binWidth + binWidth / 2;
+      
+      console.log('binCenterX: ', binCenterX);
+      console.log('bin: ', bin);
+      console.log('binLeft: ', binLeft);
       const gridLeft = binCenterX - gridWidth / 2;
       const x = gridLeft + col * 2 * BEAD_RADIUS - BEAD_RADIUS;
       const y = H - row * 2 * BEAD_RADIUS - BEAD_RADIUS;
